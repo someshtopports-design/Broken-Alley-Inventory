@@ -2,8 +2,8 @@
 export interface ProductVariant {
     size: string;
     stockHome: number;
-    stockStoreA: number;
-    stockStoreB: number;
+    stockBrokenAlley: number;
+    stockCC: number;
     uniqueCode: string; // SKU/UUID for QR scanning
 }
 
@@ -38,7 +38,7 @@ export interface Sale {
     size: string;
     customerId: string;
     customerName: string;
-    channel: 'Website' | 'Store A' | 'Store B';
+    channel: 'Website' | 'BrokenAlley' | 'CC';
     quantity: number;
     totalAmount: number;
     date: string;
@@ -57,7 +57,7 @@ export type View = 'Dashboard' | 'Inventory' | 'Sales' | 'Expenses' | 'Customers
 export interface StockTransfer {
     productId: string;
     size: string;
-    from: 'Home' | 'Store A' | 'Store B';
-    to: 'Home' | 'Store A' | 'Store B';
+    from: 'Home' | 'BrokenAlley' | 'CC';
+    to: 'Home' | 'BrokenAlley' | 'CC';
     quantity: number;
 }

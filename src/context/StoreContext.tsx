@@ -1,18 +1,16 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Product, Customer, Sale, Expense, StockTransfer, StoreConfig } from '../types';
+import { Product, Customer, Sale, Expense, StockTransfer } from '../types';
 
 interface StoreContextType {
     products: Product[];
     customers: Customer[];
     sales: Sale[];
     expenses: Expense[];
-    storeConfig: StoreConfig | null;
     recordSale: (data: any) => void;
     handleTransfer: (transfer: StockTransfer) => void;
     addExpense: (expense: Expense) => void;
     addProduct: (product: Product) => void;
-    updateStoreConfig: (config: StoreConfig) => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -28,33 +26,32 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [sales, setSales] = useState<Sale[]>([]);
     const [expenses, setExpenses] = useState<Expense[]>([]);
-    const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
 
     // Persistence Engine
     useEffect(() => {
-        const savedData = localStorage.getItem('brokenAlley_data_v4'); // Updated version key
+        const savedData = localStorage.getItem('brokenAlley_data_v5'); // Bumped to v5 for new store names
         if (savedData) {
-            const { p, c, s, e, sc } = JSON.parse(savedData);
-            setProducts(p || []); setCustomers(c || []); setSales(s || []); setExpenses(e || []); setStoreConfig(sc || null);
+            const { p, c, s, e } = JSON.parse(savedData);
+            setProducts(p || []); setCustomers(c || []); setSales(s || []); setExpenses(e || []);
         } else {
             // Initial Data seeding if empty
             setProducts([
                 {
                     id: '1', sku: 'BA-TEE-01', name: 'Broken Alley Logo Tee', costPrice: 400, salePrice: 1299,
                     variants: [
-                        { size: 'S', stockHome: 20, stockStoreA: 5, stockStoreB: 2, uniqueCode: 'BA-TEE-01-S' },
-                        { size: 'M', stockHome: 30, stockStoreA: 10, stockStoreB: 5, uniqueCode: 'BA-TEE-01-M' },
-                        { size: 'L', stockHome: 25, stockStoreA: 5, stockStoreB: 8, uniqueCode: 'BA-TEE-01-L' },
-                        { size: 'XL', stockHome: 15, stockStoreA: 0, stockStoreB: 0, uniqueCode: 'BA-TEE-01-XL' }
+                        { size: 'S', stockHome: 20, stockBrokenAlley: 5, stockCC: 2, uniqueCode: 'BA-TEE-01-S' },
+                        { size: 'M', stockHome: 30, stockBrokenAlley: 10, stockCC: 5, uniqueCode: 'BA-TEE-01-M' },
+                        { size: 'L', stockHome: 25, stockBrokenAlley: 5, stockCC: 8, uniqueCode: 'BA-TEE-01-L' },
+                        { size: 'XL', stockHome: 15, stockBrokenAlley: 0, stockCC: 0, uniqueCode: 'BA-TEE-01-XL' }
                     ],
                     category: 'T-Shirts'
                 },
                 {
                     id: '2', sku: 'BA-HOOD-02', name: 'Shadow Realm Hoodie', costPrice: 900, salePrice: 2899,
                     variants: [
-                        { size: 'M', stockHome: 10, stockStoreA: 2, stockStoreB: 2, uniqueCode: 'BA-HOOD-02-M' },
-                        { size: 'L', stockHome: 15, stockStoreA: 5, stockStoreB: 3, uniqueCode: 'BA-HOOD-02-L' },
-                        { size: 'XL', stockHome: 10, stockStoreA: 3, stockStoreB: 0, uniqueCode: 'BA-HOOD-02-XL' }
+                        { size: 'M', stockHome: 10, stockBrokenAlley: 2, stockCC: 2, uniqueCode: 'BA-HOOD-02-M' },
+                        { size: 'L', stockHome: 15, stockBrokenAlley: 5, stockCC: 3, uniqueCode: 'BA-HOOD-02-L' },
+                        { size: 'XL', stockHome: 10, stockBrokenAlley: 3, stockCC: 0, uniqueCode: 'BA-HOOD-02-XL' }
                     ],
                     category: 'Outerwear'
                 }
@@ -64,9 +61,9 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     useEffect(() => {
         if (products.length > 0) {
-            localStorage.setItem('brokenAlley_data_v4', JSON.stringify({ p: products, c: customers, s: sales, e: expenses, sc: storeConfig }));
+            localStorage.setItem('brokenAlley_data_v5', JSON.stringify({ p: products, c: customers, s: sales, e: expenses }));
         }
-    }, [products, customers, sales, expenses, storeConfig]);
+    }, [products, customers, sales, expenses]);
 
     const handleTransfer = (transfer: StockTransfer) => {
         setProducts(prev => prev.map(p => {
@@ -76,8 +73,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 variants: p.variants.map(v => {
                     if (v.size.toLowerCase() !== transfer.size.toLowerCase()) return v;
                     const nextV = { ...v };
-                    const fromKey = transfer.from === 'Home' ? 'stockHome' : transfer.from === 'Store A' ? 'stockStoreA' : 'stockStoreB';
-                    const toKey = transfer.to === 'Home' ? 'stockHome' : transfer.to === 'Store A' ? 'stockStoreA' : 'stockStoreB';
+                    const fromKey = transfer.from === 'Home' ? 'stockHome' : transfer.from === 'BrokenAlley' ? 'stockBrokenAlley' : 'stockCC';
+                    const toKey = transfer.to === 'Home' ? 'stockHome' : transfer.to === 'BrokenAlley' ? 'stockBrokenAlley' : 'stockCC';
 
                     if (nextV[fromKey] >= transfer.quantity) {
                         nextV[fromKey] = Math.max(0, nextV[fromKey] - transfer.quantity); // Double safety
@@ -141,7 +138,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 ...p,
                 variants: p.variants.map(v => {
                     if (v.size.toLowerCase() !== size.toLowerCase()) return v;
-                    const channelKey = newSale.channel === 'Store A' ? 'stockStoreA' : newSale.channel === 'Store B' ? 'stockStoreB' : 'stockHome';
+                    const channelKey = newSale.channel === 'BrokenAlley' ? 'stockBrokenAlley' : newSale.channel === 'CC' ? 'stockCC' : 'stockHome';
                     return { ...v, [channelKey]: Math.max(0, v[channelKey] - newSale.quantity) };
                 })
             };
@@ -161,12 +158,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setProducts(prev => [...prev, prod]);
     };
 
-    const updateStoreConfig = (config: StoreConfig) => {
-        setStoreConfig(config);
-    };
-
     return (
-        <StoreContext.Provider value={{ products, customers, sales, expenses, storeConfig, recordSale, handleTransfer, addExpense, addProduct, updateStoreConfig }}>
+        <StoreContext.Provider value={{ products, customers, sales, expenses, recordSale, handleTransfer, addExpense, addProduct }}>
             {children}
         </StoreContext.Provider>
     );

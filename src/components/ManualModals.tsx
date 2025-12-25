@@ -15,7 +15,7 @@ const ManualModals: React.FC<ManualModalsProps> = ({ activeModal, onClose }) => 
     if (!activeModal) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fadeIn">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fadeIn font-sans">
             <div className="glass w-full max-w-md p-10 rounded-[50px] border border-white/10 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
                 <button onClick={onClose} className="absolute top-8 right-8 text-white/20 hover:text-white transition-colors"><i className="fa-solid fa-xmark text-xl"></i></button>
                 <h3 className="text-2xl font-black uppercase italic tracking-tighter mb-8 text-center">
@@ -47,13 +47,13 @@ const ManualModals: React.FC<ManualModalsProps> = ({ activeModal, onClose }) => 
                                 <div>
                                     <label className="text-[10px] font-black uppercase text-white/30 tracking-[0.2em] mb-2 block">From</label>
                                     <select id="t-from" className="w-full glass p-5 rounded-2xl border-white/10 text-sm font-bold uppercase text-white bg-black/50 appearance-none">
-                                        <option>Home</option><option>Store A</option><option>Store B</option>
+                                        <option>Home</option><option>BrokenAlley</option><option>CC</option>
                                     </select>
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-black uppercase text-white/30 tracking-[0.2em] mb-2 block">To</label>
                                     <select id="t-to" className="w-full glass p-5 rounded-2xl border-white/10 text-sm font-bold uppercase text-white bg-black/50 appearance-none">
-                                        <option>Store A</option><option>Store B</option><option>Home</option>
+                                        <option>BrokenAlley</option><option>CC</option><option>Home</option>
                                     </select>
                                 </div>
                             </div>
@@ -155,25 +155,20 @@ const ManualModals: React.FC<ManualModalsProps> = ({ activeModal, onClose }) => 
 
                                     if (name && cost && sale) {
                                         const baseId = Date.now().toString();
-                                        const sizes = autoSizes ? ['S', 'M', 'L', 'XL'] : [initialSize]; // If auto, force standad set? Or just add S,M,L,XL? User said "S is already done... option to make it for M,L,XL". Let's assume Standard Set if Yes.
+                                        const sizes = autoSizes ? ['S', 'M', 'L', 'XL'] : [initialSize];
 
-                                        // Logic: If Auto is YES, we generate S, M, L, XL variants.
-                                        // If NO, we strictly use the Initial Size selected.
-
-                                        const finalSizes = autoSizes ? ['S', 'M', 'L', 'XL'] : [initialSize];
-
-                                        const variants = finalSizes.map(s => ({
+                                        const variants = sizes.map(s => ({
                                             size: s,
-                                            stockHome: s === initialSize ? initialQty : 0, // Only set stock for the size actively being added, others start at 0? Or user implies all get same stock? Usually drops have distribution. I'll default others to 0 to be safe, user can Transfer/Add later.
-                                            stockStoreA: 0,
-                                            stockStoreB: 0,
-                                            uniqueCode: `${name.substring(0, 3).toUpperCase()}-${s}-${baseId.substring(9)}` // Auto-gen unique code
+                                            stockHome: s === initialSize ? initialQty : 0,
+                                            stockBrokenAlley: 0,
+                                            stockCC: 0,
+                                            uniqueCode: `${name.substring(0, 3).toUpperCase()}-${s}-${baseId.substring(9)}`
                                         }));
 
                                         addProduct({
                                             id: baseId,
                                             name, costPrice: cost, salePrice: sale,
-                                            category: 'T-Shirts', // Defaulting, maybe add select later if needed
+                                            category: 'T-Shirts',
                                             variants: variants
                                         });
                                         onClose();

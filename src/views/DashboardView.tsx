@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { useStore } from '../context/StoreContext';
 import { View } from '../types';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -9,21 +9,16 @@ interface DashboardViewProps {
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({ setView }) => {
-    const { products, sales, expenses, storeConfig, updateStoreConfig } = useStore();
-    const [showOnboard, setShowOnboard] = useState(false);
+    const { products, sales, expenses } = useStore();
 
     // Date Filters for interactive charts could go here
     // For now, simple stats
-
-    useEffect(() => {
-        if (!storeConfig) setShowOnboard(true);
-    }, [storeConfig]);
 
     const stats = useMemo(() => {
         const totalRev = sales.reduce((a, b) => a + b.totalAmount, 0);
         const totalExp = expenses.reduce((a, b) => a + b.amount, 0);
         const totalInvValue = products.reduce((acc, p) => {
-            const totalUnits = p.variants.reduce((vAcc, v) => vAcc + v.stockHome + v.stockStoreA + v.stockStoreB, 0);
+            const totalUnits = p.variants.reduce((vAcc, v) => vAcc + v.stockHome + v.stockBrokenAlley + v.stockCC, 0);
             return acc + (totalUnits * p.costPrice);
         }, 0);
 
@@ -36,7 +31,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ setView }) => {
     }, [sales, expenses, products]);
 
     return (
-        <div className="space-y-6 animate-fadeIn relative">
+        <div className="space-y-6 animate-fadeIn relative font-sans">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
                     { label: 'Revenue', val: stats.revenue, color: 'text-lime-400', icon: 'fa-indian-rupee-sign', action: () => setView('Sales') },
@@ -63,17 +58,17 @@ const DashboardView: React.FC<DashboardViewProps> = ({ setView }) => {
                     <ResponsiveContainer width="100%" height="85%">
                         <BarChart data={sales.slice(-10)}>
                             <XAxis dataKey="date" hide />
-                            <Tooltip contentStyle={{ background: '#111', border: 'none', borderRadius: '12px', fontSize: '12px' }} />
+                            <Tooltip contentStyle={{ background: '#111', border: 'none', borderRadius: '12px', fontSize: '12px', fontFamily: '"Space Grotesk", sans-serif' }} />
                             <Bar dataKey="totalAmount" fill="#a3e635" radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
                 <div className="glass p-6 rounded-3xl flex flex-col">
-                    <h3 className="font-bold mb-4">Urgent Stock Alerts (Home &lt; 3)</h3>
+                    <h3 className="font-bold mb-4">Urgent Stock Alerts (1-2 Left)</h3>
                     <div className="space-y-3 overflow-y-auto max-h-[250px] pr-2 custom-scrollbar">
                         {products.flatMap(p =>
                             p.variants
-                                .filter(v => v.stockHome < 3)
+                                .filter(v => v.stockHome > 0 && v.stockHome <= 2)
                                 .map((v, i) => (
                                     <div key={`${p.id}-${v.size}`} className="flex items-center justify-between p-3 rounded-2xl bg-red-400/5 border border-red-400/10">
                                         <div>
@@ -84,7 +79,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ setView }) => {
                                     </div>
                                 ))
                         )}
-                        {products.every(p => p.variants.every(v => v.stockHome >= 3)) && (
+                        {products.every(p => p.variants.every(v => v.stockHome === 0 || v.stockHome > 2)) && (
                             <p className="text-xs text-white/20 text-center py-10 font-bold uppercase tracking-widest">All Clear</p>
                         )}
                     </div>
@@ -93,53 +88,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ setView }) => {
                     </button>
                 </div>
             </div>
-
-            {showOnboard && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl animate-fadeIn">
-                    <div className="glass w-full max-w-md p-10 rounded-[50px] border border-lime-400/20 shadow-[0_0_100px_rgba(163,230,53,0.1)] relative text-center">
-                        <div className="w-20 h-20 bg-lime-400 rounded-3xl mx-auto flex items-center justify-center text-3xl text-black mb-6 shadow-xl shadow-lime-400/20">
-                            <i className="fa-solid fa-store"></i>
-                        </div>
-                        <h2 className="text-3xl font-black uppercase italic tracking-tighter mb-2">Welcome to Ops</h2>
-                        <p className="text-white/40 text-sm font-medium mb-8">Please setup your Store details to begin.</p>
-
-                        <form onSubmit={(e) => {
-                            e.preventDefault();
-                            const name = (document.getElementById('s-name') as HTMLInputElement).value;
-                            const c1 = (document.getElementById('s-c1') as HTMLInputElement).value;
-                            const c2 = (document.getElementById('s-c2') as HTMLInputElement).value;
-                            if (name && c1) {
-                                updateStoreConfig({
-                                    name,
-                                    contacts: [
-                                        { name: 'Primary', phone: c1 },
-                                        { name: 'Secondary', phone: c2 }
-                                    ]
-                                });
-                                setShowOnboard(false);
-                            }
-                        }} className="space-y-4 text-left">
-                            <div>
-                                <label className="text-[10px] uppercase font-black tracking-widest text-white/30 ml-2">Store Name</label>
-                                <input id="s-name" defaultValue="Store A" className="w-full glass p-4 rounded-2xl font-bold border-white/10 focus:border-lime-400 focus:outline-none" />
-                            </div>
-                            <div>
-                                <label className="text-[10px] uppercase font-black tracking-widest text-white/30 ml-2">Manager Contact</label>
-                                <input id="s-c1" placeholder="+91 98..." className="w-full glass p-4 rounded-2xl font-bold border-white/10 focus:border-lime-400 focus:outline-none" />
-                            </div>
-                            <div>
-                                <label className="text-[10px] uppercase font-black tracking-widest text-white/30 ml-2">Staff Contact</label>
-                                <input id="s-c2" placeholder="+91 98..." className="w-full glass p-4 rounded-2xl font-bold border-white/10 focus:border-lime-400 focus:outline-none" />
-                            </div>
-                            <button type="submit" className="w-full py-5 bg-lime-400 text-black font-black uppercase tracking-[0.2em] text-xs rounded-2xl shadow-xl shadow-lime-400/20 hover:scale-[1.02] active:scale-95 transition-all mt-4">
-                                Complete Setup
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
-
 export default DashboardView;

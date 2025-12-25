@@ -23,7 +23,7 @@ export const parseBusinessInput = async (input: string) => {
       1. **SALE**: Selling a product. Extract:
          - Customer Name, Phone, Address (if provided).
          - Item Name & Size.
-         - Channel (Website, Store A, Store B). Default to 'Website' if vague.
+         - Channel (Website, BrokenAlley, CC). Default to 'Website' if vague.
          - Amount (if distinct from retail price).
          
       2. **EXPENSE**: Spending money. Categories:
@@ -35,7 +35,7 @@ export const parseBusinessInput = async (input: string) => {
          - "Other"
          
       3. **TRANSFER**: Moving stock.
-         - From/To: Home, Store A, Store B.
+         - From/To: Home, BrokenAlley, CC.
          - Quantity & Size.
          
       4. **PRODUCT_DROP**: Launching a new item.

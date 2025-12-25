@@ -18,7 +18,7 @@ const ExpensesView: React.FC<ExpensesViewProps> = ({ setShowModal }) => {
     const categories: Expense['category'][] = ['Marketing', 'Delivery', 'Samples', 'Travel', 'Production', 'Manufacturing', 'Other'];
 
     return (
-        <div className="space-y-6 animate-fadeIn">
+        <div className="space-y-6 animate-fadeIn font-sans">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h2 className="text-2xl font-black uppercase italic">Business Burn</h2>
                 <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
@@ -47,11 +47,11 @@ const ExpensesView: React.FC<ExpensesViewProps> = ({ setShowModal }) => {
                         <div className="flex items-center gap-6">
                             <div className="w-14 h-14 rounded-2xl bg-red-400/10 flex items-center justify-center text-red-400 text-xl">
                                 <i className={`fa-solid ${e.category === 'Marketing' ? 'fa-bullhorn' :
-                                        e.category === 'Delivery' ? 'fa-truck' :
-                                            e.category === 'Travel' ? 'fa-plane' :
-                                                e.category === 'Manufacturing' ? 'fa-industry' :
-                                                    e.category === 'Production' ? 'fa-shirt' :
-                                                        'fa-receipt'
+                                    e.category === 'Delivery' ? 'fa-truck' :
+                                        e.category === 'Travel' ? 'fa-plane' :
+                                            e.category === 'Manufacturing' ? 'fa-industry' :
+                                                e.category === 'Production' ? 'fa-shirt' :
+                                                    'fa-receipt'
                                     }`}></i>
                             </div>
                             <div>

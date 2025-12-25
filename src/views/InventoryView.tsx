@@ -17,7 +17,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({ setShowModal }) => {
     );
 
     return (
-        <div className="space-y-8 animate-fadeIn">
+        <div className="space-y-8 animate-fadeIn font-sans">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h2 className="text-3xl font-black italic tracking-tighter uppercase">Inventory Matrix</h2>
                 <div className="flex gap-2 w-full md:w-auto">
@@ -53,8 +53,8 @@ const InventoryView: React.FC<InventoryViewProps> = ({ setShowModal }) => {
                                     <tr>
                                         <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-white/30">Size</th>
                                         <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-white/30 text-center">Home</th>
-                                        <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-white/30 text-center">Store A</th>
-                                        <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-white/30 text-center">Store B</th>
+                                        <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-white/30 text-center">BrokenAlley</th>
+                                        <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-white/30 text-center">CC</th>
                                         <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-white/30 text-center">Unique Code</th>
                                         <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-white/30 text-right">Actions</th>
                                     </tr>
@@ -63,11 +63,11 @@ const InventoryView: React.FC<InventoryViewProps> = ({ setShowModal }) => {
                                     {p.variants.map(v => (
                                         <tr key={v.size} className="hover:bg-white/5 transition-colors">
                                             <td className="px-6 py-4 font-black text-lime-400">{v.size}</td>
-                                            <td className={`px-6 py-4 text-center font-bold text-sm ${v.stockHome < 3 ? 'text-red-500 animate-pulse' : 'text-white/60'}`}>
+                                            <td className={`px-6 py-4 text-center font-bold text-sm ${v.stockHome > 0 && v.stockHome <= 2 ? 'text-red-500 animate-pulse' : 'text-white/60'}`}>
                                                 {v.stockHome}
                                             </td>
-                                            <td className="px-6 py-4 text-center font-bold text-sm text-white/60">{v.stockStoreA}</td>
-                                            <td className="px-6 py-4 text-center font-bold text-sm text-white/60">{v.stockStoreB}</td>
+                                            <td className="px-6 py-4 text-center font-bold text-sm text-white/60">{v.stockBrokenAlley}</td>
+                                            <td className="px-6 py-4 text-center font-bold text-sm text-white/60">{v.stockCC}</td>
                                             <td className="px-6 py-4 text-center text-xs font-mono text-white/30">{v.uniqueCode}</td>
                                             <td className="px-6 py-4 text-right">
                                                 <button

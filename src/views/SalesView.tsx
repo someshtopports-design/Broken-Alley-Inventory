@@ -15,6 +15,7 @@ const SalesView: React.FC = () => {
     const [custName, setCustName] = useState('');
     const [custPhone, setCustPhone] = useState('');
     const [custAddr, setCustAddr] = useState('');
+    const [channel, setChannel] = useState<'Website' | 'BrokenAlley' | 'CC'>('BrokenAlley');
 
     const handleSearch = (code: string) => {
         let found: { product: Product; variant: ProductVariant } | null = null;
@@ -43,7 +44,7 @@ const SalesView: React.FC = () => {
             customerName: custName,
             customerPhone: custPhone,
             customerAddress: custAddr,
-            channel: 'Home', // Default based on context, or could be select
+            channel: channel,
             quantity: 1,
             amount: foundItem.product.salePrice
         });
@@ -61,7 +62,7 @@ const SalesView: React.FC = () => {
     };
 
     return (
-        <div className="space-y-6 animate-fadeIn relative">
+        <div className="space-y-6 animate-fadeIn relative font-sans">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-black uppercase italic">Sales History</h2>
                 <button onClick={() => setShowPos(true)} className="bg-lime-400 text-black px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-lime-400/20 active:scale-95 transition-all flex items-center gap-2">
@@ -167,13 +168,25 @@ const SalesView: React.FC = () => {
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
+                                            <label className="text-[10px] font-black uppercase text-white/30 mb-2 block">Channel</label>
+                                            <select
+                                                value={channel}
+                                                onChange={e => setChannel(e.target.value as any)}
+                                                className="w-full glass p-4 rounded-2xl border-white/10 text-sm font-bold text-white bg-black/50 appearance-none focus:border-lime-400 focus:outline-none"
+                                            >
+                                                <option value="BrokenAlley">Broken Alley (Store)</option>
+                                                <option value="CC">CC (Store)</option>
+                                                <option value="Website">Website (Home Stock)</option>
+                                            </select>
+                                        </div>
+                                        <div>
                                             <label className="text-[10px] font-black uppercase text-white/30 mb-2 block">Phone (Optional)</label>
                                             <input value={custPhone} onChange={e => setCustPhone(e.target.value)} placeholder="98XXXXXXXX" type="tel" className="w-full glass p-4 rounded-2xl border-white/10 text-sm font-bold text-white bg-transparent focus:border-lime-400 focus:outline-none" />
                                         </div>
-                                        <div>
-                                            <label className="text-[10px] font-black uppercase text-white/30 mb-2 block">Address (Optional)</label>
-                                            <input value={custAddr} onChange={e => setCustAddr(e.target.value)} placeholder="Metro City..." className="w-full glass p-4 rounded-2xl border-white/10 text-sm font-bold text-white bg-transparent focus:border-lime-400 focus:outline-none" />
-                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black uppercase text-white/30 mb-2 block">Address (Optional)</label>
+                                        <input value={custAddr} onChange={e => setCustAddr(e.target.value)} placeholder="Metro City..." className="w-full glass p-4 rounded-2xl border-white/10 text-sm font-bold text-white bg-transparent focus:border-lime-400 focus:outline-none" />
                                     </div>
                                 </div>
 
