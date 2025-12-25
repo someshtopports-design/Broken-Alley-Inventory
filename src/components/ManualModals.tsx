@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { Product, Expense } from '../types';
 
@@ -10,12 +10,13 @@ interface ManualModalsProps {
 
 const ManualModals: React.FC<ManualModalsProps> = ({ activeModal, onClose }) => {
     const { products, handleTransfer, addExpense, addProduct } = useStore();
+    const [autoSizes, setAutoSizes] = useState(true);
 
     if (!activeModal) return null;
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fadeIn">
-            <div className="glass w-full max-w-md p-10 rounded-[50px] border border-white/10 shadow-2xl relative">
+            <div className="glass w-full max-w-md p-10 rounded-[50px] border border-white/10 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
                 <button onClick={onClose} className="absolute top-8 right-8 text-white/20 hover:text-white transition-colors"><i className="fa-solid fa-xmark text-xl"></i></button>
                 <h3 className="text-2xl font-black uppercase italic tracking-tighter mb-8 text-center">
                     {activeModal === 'product' ? 'New Drop' : activeModal === 'transfer' ? 'Internal Move' : 'Log Burn'}
@@ -77,7 +78,7 @@ const ManualModals: React.FC<ManualModalsProps> = ({ activeModal, onClose }) => 
                             <div>
                                 <label className="text-[10px] font-black uppercase text-white/30 mb-2 block">Category</label>
                                 <select id="e-cat" className="w-full glass p-5 rounded-2xl border-white/10 text-sm font-bold uppercase text-white bg-black/50 appearance-none">
-                                    <option>Marketing</option><option>Delivery</option><option>Samples</option><option>Travel</option><option>Other</option>
+                                    <option>Marketing</option><option>Delivery</option><option>Samples</option><option>Travel</option><option>Manufacturing</option><option>Production</option><option>Other</option>
                                 </select>
                             </div>
                             <div>
@@ -106,11 +107,6 @@ const ManualModals: React.FC<ManualModalsProps> = ({ activeModal, onClose }) => 
                     )}
                     {activeModal === 'product' && (
                         <>
-                            {/* Basic product add implementation */}
-                            <div>
-                                <label className="text-[10px] font-black uppercase text-white/30 mb-2 block">SKU</label>
-                                <input id="p-sku" placeholder="BA-TEE-X" className="w-full glass p-5 rounded-2xl border-white/10 text-sm font-bold text-white bg-transparent" />
-                            </div>
                             <div>
                                 <label className="text-[10px] font-black uppercase text-white/30 mb-2 block">Name</label>
                                 <input id="p-name" placeholder="New Tee Name" className="w-full glass p-5 rounded-2xl border-white/10 text-sm font-bold text-white bg-transparent" />
@@ -125,24 +121,60 @@ const ManualModals: React.FC<ManualModalsProps> = ({ activeModal, onClose }) => 
                                     <input id="p-sale" type="number" placeholder="1299" className="w-full glass p-5 rounded-2xl border-white/10 text-sm font-bold text-white bg-transparent" />
                                 </div>
                             </div>
+
+                            <hr className="border-white/10 my-2" />
+
+                            <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-black uppercase text-white/30">Auto-Generate Sizes (M,L,XL)</label>
+                                <div onClick={() => setAutoSizes(!autoSizes)} className={`w-10 h-5 rounded-full cursor-pointer transition-colors relative ${autoSizes ? 'bg-lime-400' : 'bg-white/10'}`}>
+                                    <div className={`absolute top-1 w-3 h-3 bg-black rounded-full transition-all ${autoSizes ? 'left-6' : 'left-1'}`}></div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-[10px] font-black uppercase text-white/30 mb-2 block">Initial Size (S)</label>
+                                    <select id="p-size" className="w-full glass p-5 rounded-2xl border-white/10 text-sm font-bold uppercase text-white bg-black/50 appearance-none">
+                                        <option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black uppercase text-white/30 mb-2 block">Stocks (Home)</label>
+                                    <input id="p-qty" type="number" defaultValue={0} className="w-full glass p-5 rounded-2xl border-white/10 text-sm font-bold text-white bg-transparent" />
+                                </div>
+                            </div>
+
                             <button
                                 onClick={() => {
-                                    const sku = (document.getElementById('p-sku') as HTMLInputElement).value;
                                     const name = (document.getElementById('p-name') as HTMLInputElement).value;
                                     const cost = parseInt((document.getElementById('p-cost') as HTMLInputElement).value);
                                     const sale = parseInt((document.getElementById('p-sale') as HTMLInputElement).value);
 
-                                    if (sku && name && cost && sale) {
+                                    const initialSize = (document.getElementById('p-size') as HTMLSelectElement).value;
+                                    const initialQty = parseInt((document.getElementById('p-qty') as HTMLInputElement).value);
+
+                                    if (name && cost && sale) {
+                                        const baseId = Date.now().toString();
+                                        const sizes = autoSizes ? ['S', 'M', 'L', 'XL'] : [initialSize]; // If auto, force standad set? Or just add S,M,L,XL? User said "S is already done... option to make it for M,L,XL". Let's assume Standard Set if Yes.
+
+                                        // Logic: If Auto is YES, we generate S, M, L, XL variants.
+                                        // If NO, we strictly use the Initial Size selected.
+
+                                        const finalSizes = autoSizes ? ['S', 'M', 'L', 'XL'] : [initialSize];
+
+                                        const variants = finalSizes.map(s => ({
+                                            size: s,
+                                            stockHome: s === initialSize ? initialQty : 0, // Only set stock for the size actively being added, others start at 0? Or user implies all get same stock? Usually drops have distribution. I'll default others to 0 to be safe, user can Transfer/Add later.
+                                            stockStoreA: 0,
+                                            stockStoreB: 0,
+                                            uniqueCode: `${name.substring(0, 3).toUpperCase()}-${s}-${baseId.substring(9)}` // Auto-gen unique code
+                                        }));
+
                                         addProduct({
-                                            id: Date.now().toString(),
-                                            sku, name, costPrice: cost, salePrice: sale,
-                                            category: 'T-Shirts',
-                                            variants: [
-                                                { size: 'S', stockHome: 0, stockStoreA: 0, stockStoreB: 0 },
-                                                { size: 'M', stockHome: 0, stockStoreA: 0, stockStoreB: 0 },
-                                                { size: 'L', stockHome: 0, stockStoreA: 0, stockStoreB: 0 },
-                                                { size: 'XL', stockHome: 0, stockStoreA: 0, stockStoreB: 0 }
-                                            ]
+                                            id: baseId,
+                                            name, costPrice: cost, salePrice: sale,
+                                            category: 'T-Shirts', // Defaulting, maybe add select later if needed
+                                            variants: variants
                                         });
                                         onClose();
                                     }

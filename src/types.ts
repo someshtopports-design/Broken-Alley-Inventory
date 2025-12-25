@@ -4,11 +4,17 @@ export interface ProductVariant {
     stockHome: number;
     stockStoreA: number;
     stockStoreB: number;
+    uniqueCode: string; // SKU/UUID for QR scanning
+}
+
+export interface StoreConfig {
+    name: string;
+    contacts: { name: string; phone: string }[];
 }
 
 export interface Product {
     id: string;
-    sku: string;
+    sku?: string; // Kept for legacy, optional
     name: string;
     costPrice: number;
     salePrice: number;
@@ -40,13 +46,13 @@ export interface Sale {
 
 export interface Expense {
     id: string;
-    category: 'Samples' | 'Marketing' | 'Delivery' | 'Travel' | 'Production' | 'Other';
+    category: 'Samples' | 'Marketing' | 'Delivery' | 'Travel' | 'Production' | 'Manufacturing' | 'Other';
     amount: number;
     description: string;
     date: string;
 }
 
-export type View = 'Dashboard' | 'Inventory' | 'Sales' | 'Expenses' | 'Customers' | 'AIConsole';
+export type View = 'Dashboard' | 'Inventory' | 'Sales' | 'Expenses' | 'Customers' | 'AIConsole' | 'Settings';
 
 export interface StockTransfer {
     productId: string;

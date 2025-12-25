@@ -12,18 +12,35 @@ export const parseBusinessInput = async (input: string) => {
     try {
         const response = await ai.models.generateContent({
             model: "gemini-2.0-flash-exp",
-            contents: `You are the operations manager for "Broken Alley", a streetwear brand. 
-      Parse this business activity: "${input}"
+            contents: `You are the AI Operations Director for "Broken Alley", a high-end streetwear brand. 
+      Parse this user input into a structured business action: "${input}"
       
-      CRITICAL: Always look for a "size" (e.g., S, M, L, XL, XXL, Small, Medium, Large, Oversized).
+      CRITICAL INTELLIGENCE:
+      - ALWAYS detecting SIZE is mandatory for product actions (e.g., S, M, L, XL, XXL). Default to 'M' if ambiguous but product is clear.
+      - Detect "Manufacturing" contexts (e.g., fabric, stitching, factory payments).
       
-      Rules:
-      1. If they mention spending money (marketing, travel, samples, ads, delivery portal), it's an "expense".
-      2. If they mention selling a product, it's a "sale". Extract customer details and SIZE.
-      3. If they mention moving items between locations (Home, Store A, Store B), it's a "transfer". Extract SIZE.
-      
-      Current Channels: "Website", "Store A", "Store B".
-      Expense Categories: "Samples", "Marketing", "Delivery", "Travel", "Production", "Other".`,
+      ACTION TYPES:
+      1. **SALE**: Selling a product. Extract:
+         - Customer Name, Phone, Address (if provided).
+         - Item Name & Size.
+         - Channel (Website, Store A, Store B). Default to 'Website' if vague.
+         - Amount (if distinct from retail price).
+         
+      2. **EXPENSE**: Spending money. Categories:
+         - "Marketing" (Ads, Collabs, Photoshoots)
+         - "Manufacturing" (Fabric, Production, Factory, Stitching)
+         - "Delivery" (Shipping, Dunzo, Porter)
+         - "Travel" (Uber, Flight, Hotel)
+         - "Samples" (Prototyping)
+         - "Other"
+         
+      3. **TRANSFER**: Moving stock.
+         - From/To: Home, Store A, Store B.
+         - Quantity & Size.
+         
+      4. **PRODUCT_DROP**: Launching a new item.
+         - Name, Cost, Sale Price.
+         - Initial Size/Stock if mentioned.`,
             config: {
                 responseMimeType: "application/json",
                 responseSchema: {
@@ -31,7 +48,7 @@ export const parseBusinessInput = async (input: string) => {
                     properties: {
                         type: {
                             type: Type.STRING,
-                            description: "One of 'sale', 'expense', or 'transfer'"
+                            description: "One of 'sale', 'expense', 'transfer', 'product_drop'"
                         },
                         data: {
                             type: Type.OBJECT,
@@ -47,7 +64,9 @@ export const parseBusinessInput = async (input: string) => {
                                 from: { type: Type.STRING, description: "Source location" },
                                 to: { type: Type.STRING, description: "Destination location" },
                                 quantity: { type: Type.NUMBER },
-                                channel: { type: Type.STRING, description: "Sales channel" }
+                                channel: { type: Type.STRING, description: "Sales channel" },
+                                costPrice: { type: Type.NUMBER },
+                                salePrice: { type: Type.NUMBER }
                             }
                         }
                     },
@@ -56,8 +75,9 @@ export const parseBusinessInput = async (input: string) => {
             }
         });
 
-        // @ts-ignore - aligning with user's previous working code usage
-        return JSON.parse(response.text);
+        // @ts-ignore
+        const text = typeof response.text === 'function' ? response.text() : response.text;
+        return JSON.parse(text);
     } catch (e) {
         console.error("AI Parse Error:", e);
         return null;

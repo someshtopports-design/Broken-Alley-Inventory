@@ -1,16 +1,18 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Product, Customer, Sale, Expense, StockTransfer } from '../types';
+import { Product, Customer, Sale, Expense, StockTransfer, StoreConfig } from '../types';
 
 interface StoreContextType {
     products: Product[];
     customers: Customer[];
     sales: Sale[];
     expenses: Expense[];
+    storeConfig: StoreConfig | null;
     recordSale: (data: any) => void;
     handleTransfer: (transfer: StockTransfer) => void;
     addExpense: (expense: Expense) => void;
     addProduct: (product: Product) => void;
+    updateStoreConfig: (config: StoreConfig) => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -26,32 +28,33 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [sales, setSales] = useState<Sale[]>([]);
     const [expenses, setExpenses] = useState<Expense[]>([]);
+    const [storeConfig, setStoreConfig] = useState<StoreConfig | null>(null);
 
     // Persistence Engine
     useEffect(() => {
-        const savedData = localStorage.getItem('brokenAlley_data_v3');
+        const savedData = localStorage.getItem('brokenAlley_data_v4'); // Updated version key
         if (savedData) {
-            const { p, c, s, e } = JSON.parse(savedData);
-            setProducts(p || []); setCustomers(c || []); setSales(s || []); setExpenses(e || []);
+            const { p, c, s, e, sc } = JSON.parse(savedData);
+            setProducts(p || []); setCustomers(c || []); setSales(s || []); setExpenses(e || []); setStoreConfig(sc || null);
         } else {
             // Initial Data seeding if empty
             setProducts([
                 {
                     id: '1', sku: 'BA-TEE-01', name: 'Broken Alley Logo Tee', costPrice: 400, salePrice: 1299,
                     variants: [
-                        { size: 'S', stockHome: 20, stockStoreA: 5, stockStoreB: 2 },
-                        { size: 'M', stockHome: 30, stockStoreA: 10, stockStoreB: 5 },
-                        { size: 'L', stockHome: 25, stockStoreA: 5, stockStoreB: 8 },
-                        { size: 'XL', stockHome: 15, stockStoreA: 0, stockStoreB: 0 }
+                        { size: 'S', stockHome: 20, stockStoreA: 5, stockStoreB: 2, uniqueCode: 'BA-TEE-01-S' },
+                        { size: 'M', stockHome: 30, stockStoreA: 10, stockStoreB: 5, uniqueCode: 'BA-TEE-01-M' },
+                        { size: 'L', stockHome: 25, stockStoreA: 5, stockStoreB: 8, uniqueCode: 'BA-TEE-01-L' },
+                        { size: 'XL', stockHome: 15, stockStoreA: 0, stockStoreB: 0, uniqueCode: 'BA-TEE-01-XL' }
                     ],
                     category: 'T-Shirts'
                 },
                 {
                     id: '2', sku: 'BA-HOOD-02', name: 'Shadow Realm Hoodie', costPrice: 900, salePrice: 2899,
                     variants: [
-                        { size: 'M', stockHome: 10, stockStoreA: 2, stockStoreB: 2 },
-                        { size: 'L', stockHome: 15, stockStoreA: 5, stockStoreB: 3 },
-                        { size: 'XL', stockHome: 10, stockStoreA: 3, stockStoreB: 0 }
+                        { size: 'M', stockHome: 10, stockStoreA: 2, stockStoreB: 2, uniqueCode: 'BA-HOOD-02-M' },
+                        { size: 'L', stockHome: 15, stockStoreA: 5, stockStoreB: 3, uniqueCode: 'BA-HOOD-02-L' },
+                        { size: 'XL', stockHome: 10, stockStoreA: 3, stockStoreB: 0, uniqueCode: 'BA-HOOD-02-XL' }
                     ],
                     category: 'Outerwear'
                 }
@@ -60,10 +63,10 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }, []);
 
     useEffect(() => {
-        if (products.length > 0) { // Only save if data exists to avoid wiping on first render race condition
-            localStorage.setItem('brokenAlley_data_v3', JSON.stringify({ p: products, c: customers, s: sales, e: expenses }));
+        if (products.length > 0) {
+            localStorage.setItem('brokenAlley_data_v4', JSON.stringify({ p: products, c: customers, s: sales, e: expenses, sc: storeConfig }));
         }
-    }, [products, customers, sales, expenses]);
+    }, [products, customers, sales, expenses, storeConfig]);
 
     const handleTransfer = (transfer: StockTransfer) => {
         setProducts(prev => prev.map(p => {
@@ -87,8 +90,19 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
 
     const recordSale = (data: any) => {
-        const product = products.find(p => p.name.toLowerCase().includes(data.itemName?.toLowerCase() || '')) || products[0];
-        const size = data.size?.toUpperCase() || product.variants[0].size;
+        // Try precise match by uniqueCode first if available
+        let product = data.uniqueCode ? products.find(p => p.variants.some(v => v.uniqueCode === data.uniqueCode)) : products.find(p => p.name.toLowerCase().includes(data.itemName?.toLowerCase() || ''));
+
+        // Fallback or default
+        if (!product) product = products[0];
+
+        // Determine size: manual selection OR derived from uniqueCode
+        let size = data.size?.toUpperCase();
+        if (data.uniqueCode && product) {
+            const variant = product.variants.find(v => v.uniqueCode === data.uniqueCode);
+            if (variant) size = variant.size;
+        }
+        if (!size) size = product.variants[0].size;
 
         // 1. Update Customer
         let customer = customers.find(c => c.phone === data.customerPhone || (data.customerName && c.name === data.customerName));
@@ -122,7 +136,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
         // 3. Update Inventory
         setProducts(prev => prev.map(p => {
-            if (p.id !== product.id) return p;
+            if (p.id !== product!.id) return p;
             return {
                 ...p,
                 variants: p.variants.map(v => {
@@ -147,8 +161,12 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setProducts(prev => [...prev, prod]);
     };
 
+    const updateStoreConfig = (config: StoreConfig) => {
+        setStoreConfig(config);
+    };
+
     return (
-        <StoreContext.Provider value={{ products, customers, sales, expenses, recordSale, handleTransfer, addExpense, addProduct }}>
+        <StoreContext.Provider value={{ products, customers, sales, expenses, storeConfig, recordSale, handleTransfer, addExpense, addProduct, updateStoreConfig }}>
             {children}
         </StoreContext.Provider>
     );
