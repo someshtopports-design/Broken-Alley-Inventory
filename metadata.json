@@ -1,0 +1,8 @@
+{
+  "name": "Broken Alley Inventory",
+  "description": "A high-performance inventory and business management system for Broken Alley, featuring AI-powered expense tracking, multi-location stock management, and customer CRM.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
