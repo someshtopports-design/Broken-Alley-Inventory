@@ -8,13 +8,24 @@ interface SalesViewProps {
     dateRange: { start: Date | null; end: Date | null };
 }
 
+interface CartItem {
+    product: Product;
+    variant: ProductVariant;
+    quantity: number;
+    price: number;
+}
+
 const SalesView: React.FC<SalesViewProps> = ({ dateRange }) => {
     const { sales, products, recordSale, markRTO } = useStore();
     const [showPos, setShowPos] = useState(false);
     const [scanMode, setScanMode] = useState(false);
     const [manualCode, setManualCode] = useState('');
     const [foundItem, setFoundItem] = useState<{ product: Product; variant: ProductVariant } | null>(null);
+    const [customPrice, setCustomPrice] = useState<string>(''); // String to handle empty input easily
     const [showRTOs, setShowRTOs] = useState(false);
+
+    // Cart State
+    const [cart, setCart] = useState<CartItem[]>([]);
 
     // Form Stats
     const [custName, setCustName] = useState('');
@@ -35,26 +46,54 @@ const SalesView: React.FC<SalesViewProps> = ({ dateRange }) => {
 
         if (found) {
             setFoundItem(found);
+            setCustomPrice(found.product.salePrice.toString());
             setScanMode(false);
+            setManualCode('');
         } else {
             alert('Item not found!');
         }
     };
 
-    const handleConfirmSale = () => {
+    const addToCart = () => {
         if (!foundItem) return;
-        recordSale({
-            uniqueCode: foundItem.variant.uniqueCode,
-            itemName: foundItem.product.name,
-            size: foundItem.variant.size,
-            customerName: custName,
-            customerPhone: custPhone,
-            customerAddress: custAddr,
-            channel: channel,
-            customerType: custType,
+        const price = parseFloat(customPrice) || foundItem.product.salePrice;
+
+        setCart([...cart, {
+            product: foundItem.product,
+            variant: foundItem.variant,
             quantity: 1,
-            amount: foundItem.product.salePrice
-        });
+            price: price
+        }]);
+
+        setFoundItem(null);
+        setCustomPrice('');
+    };
+
+    const removeFromCart = (index: number) => {
+        const newCart = [...cart];
+        newCart.splice(index, 1);
+        setCart(newCart);
+    };
+
+    const handleCheckout = async () => {
+        if (cart.length === 0) return;
+
+        // Process all items
+        for (const item of cart) {
+            await recordSale({
+                uniqueCode: item.variant.uniqueCode,
+                itemName: item.product.name,
+                size: item.variant.size,
+                customerName: custName,
+                customerPhone: custPhone,
+                customerAddress: custAddr,
+                channel: channel,
+                customerType: custType,
+                quantity: 1,
+                amount: item.price // Use the custom price from cart
+            });
+        }
+
         resetPos();
     };
 
@@ -67,6 +106,7 @@ const SalesView: React.FC<SalesViewProps> = ({ dateRange }) => {
         setCustAddr('');
         setCustType('Customer');
         setScanMode(false);
+        setCart([]);
     };
 
     const filteredSales = sales.filter(s => {
@@ -89,6 +129,8 @@ const SalesView: React.FC<SalesViewProps> = ({ dateRange }) => {
 
         return matchesStatus && matchesDate;
     });
+
+    const cartTotal = cart.reduce((sum, item) => sum + item.price, 0);
 
     return (
         <div className="space-y-8 animate-fadeIn relative font-sans">
@@ -178,104 +220,163 @@ const SalesView: React.FC<SalesViewProps> = ({ dateRange }) => {
             {/* POS Modal */}
             {showPos && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fadeIn">
-                    <div className="card-std w-full max-w-lg p-8 bg-[#0a0a0a] border-white/10 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
-                        <button onClick={resetPos} className="absolute top-8 right-8 text-white/20 hover:text-white transition-colors"><i className="fa-solid fa-xmark text-xl"></i></button>
+                    <div className="card-std w-full max-w-5xl h-[85vh] flex overflow-hidden bg-[#0a0a0a] border-white/10 shadow-2xl relative">
+                        <button onClick={resetPos} className="absolute top-6 right-6 z-10 text-white/20 hover:text-white transition-colors cursor-pointer"><i className="fa-solid fa-xmark text-xl"></i></button>
 
-                        <h3 className="text-2xl font-black uppercase italic tracking-tighter mb-8 text-center text-cyan-400">New Sale</h3>
+                        {/* LEFT COLUMN: Input & Item Adding */}
+                        <div className="w-1/3 border-r border-white/5 p-8 flex flex-col gap-6 bg-white/[0.02]">
+                            <h3 className="text-xl font-black uppercase italic tracking-tighter text-cyan-400">Add Items</h3>
 
-                        {!foundItem ? (
-                            <div className="space-y-6">
-                                <div className="flex gap-4">
-                                    <button onClick={() => setScanMode(true)} className="flex-1 py-10 glass rounded-3xl border-cyan-400/20 hover:bg-cyan-400/10 transition-all flex flex-col items-center gap-4 group">
-                                        <i className="fa-solid fa-qrcode text-4xl text-cyan-400 group-hover:scale-110 transition-transform"></i>
-                                        <span className="text-[10px] font-black uppercase tracking-widest">Scan QR</span>
-                                    </button>
-                                </div>
-
-                                {scanMode && (
-                                    <div className="my-4">
-                                        <QRScanner onScanSuccess={handleSearch} />
-                                        <button onClick={() => setScanMode(false)} className="w-full mt-2 py-2 text-xs font-bold text-red-400 hover:text-red-300">Cancel Scan</button>
+                            {!foundItem ? (
+                                <div className="space-y-6 flex-1">
+                                    <div className="flex gap-4">
+                                        <button onClick={() => setScanMode(true)} className="flex-1 py-10 glass rounded-3xl border-cyan-400/20 hover:bg-cyan-400/10 transition-all flex flex-col items-center gap-4 group">
+                                            <i className="fa-solid fa-qrcode text-4xl text-cyan-400 group-hover:scale-110 transition-transform"></i>
+                                            <span className="text-[10px] font-black uppercase tracking-widest">Scan QR</span>
+                                        </button>
                                     </div>
-                                )}
 
-                                <div className="relative">
-                                    <div className="absolute inset-0 flex items-center">
-                                        <div className="w-full border-t border-white/10"></div>
-                                    </div>
-                                    <div className="relative flex justify-center text-xs uppercase">
-                                        <span className="bg-[#0a0a0a] px-2 text-white/40 font-bold">Or Enter Code</span>
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-2">
-                                    <input
-                                        value={manualCode}
-                                        onChange={(e) => setManualCode(e.target.value)}
-                                        placeholder="Enter Unique Code..."
-                                        className="input-std uppercase"
-                                    />
-                                    <button onClick={() => handleSearch(manualCode)} className="btn btn-secondary w-12 !px-0"><i className="fa-solid fa-arrow-right"></i></button>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="space-y-6 animate-fadeIn">
-                                <div className="bg-cyan-400/10 p-6 rounded-3xl border border-cyan-400/20 text-center">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-cyan-400 mb-1">Item Found</p>
-                                    <h4 className="text-xl font-black italic">{foundItem.product.name}</h4>
-                                    <p className="text-sm font-bold text-white/60 mt-1">Size: {foundItem.variant.size} • ₹{foundItem.product.salePrice}</p>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="label-text">Customer Type</label>
-                                            <select
-                                                value={custType}
-                                                onChange={e => setCustType(e.target.value as any)}
-                                                className="input-std appearance-none"
-                                            >
-                                                <option>Customer</option>
-                                                <option>Actor</option>
-                                                <option>Influencer</option>
-                                            </select>
+                                    {scanMode && (
+                                        <div className="my-4">
+                                            <QRScanner onScanSuccess={handleSearch} />
+                                            <button onClick={() => setScanMode(false)} className="w-full mt-2 py-2 text-xs font-bold text-red-400 hover:text-red-300">Cancel Scan</button>
                                         </div>
-                                        <div>
-                                            <label className="label-text">Channel</label>
-                                            <select
-                                                value={channel}
-                                                onChange={e => setChannel(e.target.value as any)}
-                                                className="input-std appearance-none"
-                                            >
-                                                <option value="BrokenAlley">Broken Alley (Store)</option>
-                                                <option value="StreetJunkies">Street Junkies</option>
-                                                <option value="CC">CC</option>
-                                                <option value="Website">Website</option>
-                                            </select>
+                                    )}
+
+                                    <div className="relative">
+                                        <div className="absolute inset-0 flex items-center">
+                                            <div className="w-full border-t border-white/10"></div>
+                                        </div>
+                                        <div className="relative flex justify-center text-xs uppercase">
+                                            <span className="bg-[#111] px-2 text-white/40 font-bold">Or Enter Code</span>
                                         </div>
                                     </div>
+
+                                    <div className="flex gap-2">
+                                        <input
+                                            value={manualCode}
+                                            onChange={(e) => setManualCode(e.target.value)}
+                                            placeholder="Enter Unique Code..."
+                                            className="input-std uppercase flex-1"
+                                            onKeyDown={(e) => e.key === 'Enter' && handleSearch(manualCode)}
+                                        />
+                                        <button onClick={() => handleSearch(manualCode)} className="btn btn-secondary w-12 !px-0 rounded-2xl"><i className="fa-solid fa-arrow-right"></i></button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex-1 flex flex-col gap-4 animate-fadeIn">
+                                    <div className="bg-cyan-400/10 p-6 rounded-3xl border border-cyan-400/20 text-center">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-cyan-400 mb-1">Item Found</p>
+                                        <h4 className="text-xl font-black italic">{foundItem.product.name}</h4>
+                                        <p className="text-sm font-bold text-white/60 mt-1">Size: {foundItem.variant.size}</p>
+                                    </div>
+
                                     <div>
-                                        <label className="label-text">Customer Name</label>
-                                        <input value={custName} onChange={e => setCustName(e.target.value)} placeholder="Walk-in Customer" className="input-std" />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="label-text">Phone (Optional)</label>
-                                            <input value={custPhone} onChange={e => setCustPhone(e.target.value)} placeholder="98XXXXXXXX" type="tel" className="input-std" />
-                                        </div>
-                                        <div>
-                                            <label className="label-text">Address (Optional)</label>
-                                            <input value={custAddr} onChange={e => setCustAddr(e.target.value)} placeholder="Metro City..." className="input-std" />
+                                        <label className="label-text">Selling Price</label>
+                                        <div className="relative">
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 font-bold">₹</span>
+                                            <input
+                                                type="number"
+                                                value={customPrice}
+                                                onChange={(e) => setCustomPrice(e.target.value)}
+                                                className="input-std pl-8"
+                                            />
                                         </div>
                                     </div>
-                                </div>
 
-                                <button onClick={handleConfirmSale} className="btn btn-primary w-full shadow-xl">
-                                    Confirm & Save
-                                </button>
-                                <button onClick={() => setFoundItem(null)} className="btn btn-secondary w-full">Back to Search</button>
+                                    <button onClick={addToCart} className="btn btn-primary w-full shadow-xl mt-auto">
+                                        Add to Bill <i className="fa-solid fa-plus"></i>
+                                    </button>
+                                    <button onClick={() => setFoundItem(null)} className="btn btn-secondary w-full">Back</button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* RIGHT COLUMN: Bill & Checkout */}
+                        <div className="flex-1 p-8 flex flex-col gap-6 overflow-hidden">
+                            <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">Current Bill</h3>
+
+                            {/* Cart List */}
+                            <div className="flex-1 overflow-y-auto custom-scrollbar bg-black/20 rounded-2xl border border-white/5 p-4 space-y-2">
+                                {cart.length === 0 ? (
+                                    <div className="h-full flex flex-col items-center justify-center text-white/20">
+                                        <i className="fa-solid fa-basket-shopping text-4xl mb-2"></i>
+                                        <p className="text-xs font-bold uppercase tracking-widest">Cart is Empty</p>
+                                    </div>
+                                ) : (
+                                    cart.map((item, idx) => (
+                                        <div key={idx} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5 hovered">
+                                            <div>
+                                                <p className="text-sm font-bold uppercase">{item.product.name}</p>
+                                                <p className="text-[10px] text-white/40 font-bold mt-1">Size: {item.variant.size} • ₹{item.price}</p>
+                                            </div>
+                                            <button onClick={() => removeFromCart(idx)} className="w-8 h-8 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
+                                                <i className="fa-solid fa-trash text-xs"></i>
+                                            </button>
+                                        </div>
+                                    ))
+                                )}
                             </div>
-                        )}
+
+                            {/* Total */}
+                            <div className="py-4 border-t border-b border-white/10 flex justify-between items-center">
+                                <span className="text-sm font-bold uppercase text-white/40">Total Amount</span>
+                                <span className="text-2xl font-black italic text-cyan-400">₹{cartTotal.toLocaleString()}</span>
+                            </div>
+
+                            {/* Checkout Form */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="label-text">Customer Type</label>
+                                    <select
+                                        value={custType}
+                                        onChange={e => setCustType(e.target.value as any)}
+                                        className="input-std appearance-none"
+                                    >
+                                        <option>Customer</option>
+                                        <option>Actor</option>
+                                        <option>Influencer</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="label-text">Channel</label>
+                                    <select
+                                        value={channel}
+                                        onChange={e => setChannel(e.target.value as any)}
+                                        className="input-std appearance-none"
+                                    >
+                                        <option value="BrokenAlley">Broken Alley (Store)</option>
+                                        <option value="StreetJunkies">Street Junkies</option>
+                                        <option value="CC">CC</option>
+                                        <option value="Website">Website</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="label-text">Customer Name</label>
+                                <input value={custName} onChange={e => setCustName(e.target.value)} placeholder="Walk-in Customer" className="input-std" />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="label-text">Phone</label>
+                                    <input value={custPhone} onChange={e => setCustPhone(e.target.value)} placeholder="98XXXXXXXX" type="tel" className="input-std" />
+                                </div>
+                                <div>
+                                    <label className="label-text">Address</label>
+                                    <input value={custAddr} onChange={e => setCustAddr(e.target.value)} placeholder="Metro City..." className="input-std" />
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={handleCheckout}
+                                disabled={cart.length === 0}
+                                className="btn btn-primary w-full shadow-xl"
+                            >
+                                Checkout ({cart.length} Items)
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

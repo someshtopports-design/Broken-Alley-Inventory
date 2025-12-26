@@ -1,18 +1,17 @@
 import { Sale, Expense } from '../types';
 
 export const exportSalesToCSV = (sales: Sale[]) => {
-    const headers = ['Date', 'Invoice ID', 'Customer Name', 'Type', 'Product', 'Size', 'Qty', 'Total (INR)', 'Channel', 'Status'];
+    // Format: Customer Type, Customer Name, Number, Address, Product name, Size, Number of item, Price
+    const headers = ['Customer Type', 'Customer Name', 'Number', 'Address', 'Product Name', 'Size', 'Qty', 'Price (INR)'];
     const rows = sales.map(s => [
-        new Date(s.date).toLocaleDateString(),
-        s.id,
-        s.customerName || 'N/A',
         s.customerType || 'Customer',
+        s.customerName || 'Walk-in',
+        s.customerPhone === 'N/A' || !s.customerPhone ? 'null' : s.customerPhone,
+        s.customerAddress === 'N/A' || !s.customerAddress ? 'null' : s.customerAddress,
         s.productName,
         s.size,
         s.quantity,
-        s.totalAmount,
-        s.channel || 'Website',
-        s.status || 'completed'
+        s.totalAmount
     ]);
 
     let csvContent = "data:text/csv;charset=utf-8,"
@@ -29,11 +28,16 @@ export const exportSalesToCSV = (sales: Sale[]) => {
 };
 
 export const exportExpensesToCSV = (expenses: Expense[]) => {
+    // Improved Format: Date first for timeline view, then Category for grouping
     const headers = ['Date', 'Category', 'Description', 'Amount (INR)'];
-    const rows = expenses.map(e => [
+
+    // Sort logic: Date descending
+    const sortedExpenses = [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    const rows = sortedExpenses.map(e => [
         new Date(e.date).toLocaleDateString(),
         e.category,
-        e.description,
+        `"${e.description}"`, // Quote description to handle commas
         e.amount
     ]);
 

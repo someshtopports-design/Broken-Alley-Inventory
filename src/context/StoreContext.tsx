@@ -136,6 +136,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             size,
             customerId,
             customerName,
+            customerPhone: data.customerPhone || (customer ? customer.phone : 'N/A'),
+            customerAddress: data.customerAddress || (customer ? customer.address : 'N/A'),
             channel: data.channel || 'Website',
             quantity: data.quantity || 1,
             totalAmount: data.amount || (product.salePrice * (data.quantity || 1)),
@@ -143,6 +145,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             status: 'completed',
             customerType: data.customerType || 'Customer'
         };
+
 
         await addDoc(collection(db, 'sales'), saleData);
 

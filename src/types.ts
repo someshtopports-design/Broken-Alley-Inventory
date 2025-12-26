@@ -45,6 +45,8 @@ export interface Sale {
     date: string;
     status: 'completed' | 'rto'; // Added
     customerType: 'Customer' | 'Actor' | 'Influencer'; // Added snapshot
+    customerPhone?: string;
+    customerAddress?: string;
 }
 
 export interface Expense {
