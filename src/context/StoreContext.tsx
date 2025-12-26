@@ -11,7 +11,11 @@ interface StoreContextType {
     handleTransfer: (transfer: StockTransfer) => void;
     addExpense: (expense: Expense) => void;
     addProduct: (product: Product) => void;
+    markRTO: (saleId: string) => void;
+    deleteProduct: (id: string) => void;
+    updateProduct: (product: Product) => void;
 }
+
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
@@ -29,7 +33,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     // Persistence Engine
     useEffect(() => {
-        const savedData = localStorage.getItem('brokenAlley_data_v5'); // Bumped to v5 for new store names
+        const savedData = localStorage.getItem('brokenAlley_data_v6');
         if (savedData) {
             const { p, c, s, e } = JSON.parse(savedData);
             setProducts(p || []); setCustomers(c || []); setSales(s || []); setExpenses(e || []);
@@ -39,21 +43,12 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 {
                     id: '1', sku: 'BA-TEE-01', name: 'Broken Alley Logo Tee', costPrice: 400, salePrice: 1299,
                     variants: [
-                        { size: 'S', stockHome: 20, stockBrokenAlley: 5, stockCC: 2, uniqueCode: 'BA-TEE-01-S' },
-                        { size: 'M', stockHome: 30, stockBrokenAlley: 10, stockCC: 5, uniqueCode: 'BA-TEE-01-M' },
-                        { size: 'L', stockHome: 25, stockBrokenAlley: 5, stockCC: 8, uniqueCode: 'BA-TEE-01-L' },
-                        { size: 'XL', stockHome: 15, stockBrokenAlley: 0, stockCC: 0, uniqueCode: 'BA-TEE-01-XL' }
+                        { size: 'S', stockBrokenAlley: 20, stockStreetJunkies: 5, stockCC: 2, uniqueCode: 'BA-TEE-01-S' },
+                        { size: 'M', stockBrokenAlley: 30, stockStreetJunkies: 10, stockCC: 5, uniqueCode: 'BA-TEE-01-M' },
+                        { size: 'L', stockBrokenAlley: 25, stockStreetJunkies: 5, stockCC: 8, uniqueCode: 'BA-TEE-01-L' },
+                        { size: 'XL', stockBrokenAlley: 15, stockStreetJunkies: 0, stockCC: 0, uniqueCode: 'BA-TEE-01-XL' }
                     ],
                     category: 'T-Shirts'
-                },
-                {
-                    id: '2', sku: 'BA-HOOD-02', name: 'Shadow Realm Hoodie', costPrice: 900, salePrice: 2899,
-                    variants: [
-                        { size: 'M', stockHome: 10, stockBrokenAlley: 2, stockCC: 2, uniqueCode: 'BA-HOOD-02-M' },
-                        { size: 'L', stockHome: 15, stockBrokenAlley: 5, stockCC: 3, uniqueCode: 'BA-HOOD-02-L' },
-                        { size: 'XL', stockHome: 10, stockBrokenAlley: 3, stockCC: 0, uniqueCode: 'BA-HOOD-02-XL' }
-                    ],
-                    category: 'Outerwear'
                 }
             ]);
         }
@@ -61,7 +56,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     useEffect(() => {
         if (products.length > 0) {
-            localStorage.setItem('brokenAlley_data_v5', JSON.stringify({ p: products, c: customers, s: sales, e: expenses }));
+            localStorage.setItem('brokenAlley_data_v6', JSON.stringify({ p: products, c: customers, s: sales, e: expenses }));
         }
     }, [products, customers, sales, expenses]);
 
@@ -73,11 +68,11 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 variants: p.variants.map(v => {
                     if (v.size.toLowerCase() !== transfer.size.toLowerCase()) return v;
                     const nextV = { ...v };
-                    const fromKey = transfer.from === 'Home' ? 'stockHome' : transfer.from === 'BrokenAlley' ? 'stockBrokenAlley' : 'stockCC';
-                    const toKey = transfer.to === 'Home' ? 'stockHome' : transfer.to === 'BrokenAlley' ? 'stockBrokenAlley' : 'stockCC';
+                    const fromKey = transfer.from === 'BrokenAlley' ? 'stockBrokenAlley' : transfer.from === 'StreetJunkies' ? 'stockStreetJunkies' : 'stockCC';
+                    const toKey = transfer.to === 'BrokenAlley' ? 'stockBrokenAlley' : transfer.to === 'StreetJunkies' ? 'stockStreetJunkies' : 'stockCC';
 
                     if (nextV[fromKey] >= transfer.quantity) {
-                        nextV[fromKey] = Math.max(0, nextV[fromKey] - transfer.quantity); // Double safety
+                        nextV[fromKey] = Math.max(0, nextV[fromKey] - transfer.quantity);
                         nextV[toKey] += transfer.quantity;
                     }
                     return nextV;
@@ -109,6 +104,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 name: data.customerName,
                 phone: data.customerPhone || 'N/A',
                 address: data.customerAddress || 'N/A',
+                type: data.customerType || 'Customer',
                 totalSpent: 0,
                 lastOrderDate: new Date().toISOString()
             };
@@ -126,7 +122,9 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             channel: (data.channel || 'Website') as Sale['channel'],
             quantity: data.quantity || 1,
             totalAmount: data.amount || (product.salePrice * (data.quantity || 1)),
-            date: new Date().toISOString()
+            date: new Date().toISOString(),
+            status: 'completed',
+            customerType: data.customerType || 'Customer'
         };
 
         setSales(prev => [newSale, ...prev]);
@@ -138,7 +136,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 ...p,
                 variants: p.variants.map(v => {
                     if (v.size.toLowerCase() !== size.toLowerCase()) return v;
-                    const channelKey = newSale.channel === 'BrokenAlley' ? 'stockBrokenAlley' : newSale.channel === 'CC' ? 'stockCC' : 'stockHome';
+                    // Deduct from appropriate channel location
+                    const channelKey = newSale.channel === 'StreetJunkies' ? 'stockStreetJunkies' : newSale.channel === 'CC' ? 'stockCC' : 'stockBrokenAlley';
                     return { ...v, [channelKey]: Math.max(0, v[channelKey] - newSale.quantity) };
                 })
             };
@@ -150,6 +149,35 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }
     };
 
+    const markRTO = (saleId: string) => {
+        const sale = sales.find(s => s.id === saleId);
+        if (!sale || sale.status === 'rto') return;
+
+        // 1. Mark Sale as RTO
+        setSales(prev => prev.map(s => s.id === saleId ? { ...s, status: 'rto' } : s));
+
+        // 2. Restock Inventory (Return to Source)
+        setProducts(prev => prev.map(p => {
+            if (p.id !== sale.productId) return p;
+            return {
+                ...p,
+                variants: p.variants.map(v => {
+                    if (v.size !== sale.size) return v;
+                    const channelKey = sale.channel === 'StreetJunkies' ? 'stockStreetJunkies' : sale.channel === 'CC' ? 'stockCC' : 'stockBrokenAlley';
+                    return { ...v, [channelKey]: v[channelKey] + sale.quantity };
+                })
+            };
+        }));
+    };
+
+    const deleteProduct = (id: string) => {
+        setProducts(prev => prev.filter(p => p.id !== id));
+    };
+
+    const updateProduct = (updated: Product) => {
+        setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
+    };
+
     const addExpense = (newEx: Expense) => {
         setExpenses(prev => [newEx, ...prev]);
     };
@@ -159,7 +187,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
 
     return (
-        <StoreContext.Provider value={{ products, customers, sales, expenses, recordSale, handleTransfer, addExpense, addProduct }}>
+        <StoreContext.Provider value={{ products, customers, sales, expenses, recordSale, handleTransfer, addExpense, addProduct, markRTO, deleteProduct, updateProduct }}>
             {children}
         </StoreContext.Provider>
     );

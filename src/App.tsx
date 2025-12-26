@@ -9,16 +9,17 @@ import SalesView from './views/SalesView';
 import ExpensesView from './views/ExpensesView';
 import CustomersView from './views/CustomersView';
 import AIConsoleView from './views/AIConsoleView';
-import { View } from './types';
+import { View, Product } from './types';
 
 const Main = () => {
     const [activeView, setActiveView] = useState<View>('Dashboard');
     const [showModal, setShowModal] = useState<'product' | 'transfer' | 'expense' | null>(null);
+    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
     const renderContent = () => {
         switch (activeView) {
             case 'Dashboard': return <DashboardView setView={setActiveView} />;
-            case 'Inventory': return <InventoryView setShowModal={setShowModal} />;
+            case 'Inventory': return <InventoryView setShowModal={setShowModal} setEditingProduct={setEditingProduct} />;
             case 'Sales': return <SalesView />;
             case 'Expenses': return <ExpensesView setShowModal={setShowModal} />;
             case 'Customers': return <CustomersView />;
@@ -30,7 +31,7 @@ const Main = () => {
     return (
         <Layout activeView={activeView} setView={setActiveView}>
             {renderContent()}
-            <ManualModals activeModal={showModal} onClose={() => setShowModal(null)} />
+            <ManualModals activeModal={showModal} onClose={() => { setShowModal(null); setEditingProduct(null); }} editingProduct={editingProduct} />
         </Layout>
     );
 };

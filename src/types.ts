@@ -1,10 +1,10 @@
 
 export interface ProductVariant {
     size: string;
-    stockHome: number;
-    stockBrokenAlley: number;
+    stockBrokenAlley: number; // Main Hub
+    stockStreetJunkies: number;
     stockCC: number;
-    uniqueCode: string; // SKU/UUID for QR scanning
+    uniqueCode: string;
 }
 
 export interface StoreConfig {
@@ -27,6 +27,7 @@ export interface Customer {
     name: string;
     phone: string;
     address: string;
+    type: 'Customer' | 'Actor' | 'Influencer'; // Added
     totalSpent: number;
     lastOrderDate: string;
 }
@@ -38,10 +39,12 @@ export interface Sale {
     size: string;
     customerId: string;
     customerName: string;
-    channel: 'Website' | 'BrokenAlley' | 'CC';
+    channel: 'Website' | 'BrokenAlley' | 'StreetJunkies' | 'CC';
     quantity: number;
     totalAmount: number;
     date: string;
+    status: 'completed' | 'rto'; // Added
+    customerType: 'Customer' | 'Actor' | 'Influencer'; // Added snapshot
 }
 
 export interface Expense {
@@ -57,7 +60,7 @@ export type View = 'Dashboard' | 'Inventory' | 'Sales' | 'Expenses' | 'Customers
 export interface StockTransfer {
     productId: string;
     size: string;
-    from: 'Home' | 'BrokenAlley' | 'CC';
-    to: 'Home' | 'BrokenAlley' | 'CC';
+    from: 'BrokenAlley' | 'StreetJunkies' | 'CC';
+    to: 'BrokenAlley' | 'StreetJunkies' | 'CC';
     quantity: number;
 }

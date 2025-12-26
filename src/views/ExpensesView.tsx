@@ -20,7 +20,7 @@ const ExpensesView: React.FC<ExpensesViewProps> = ({ setShowModal }) => {
     return (
         <div className="space-y-6 animate-fadeIn font-sans">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <h2 className="text-2xl font-black uppercase italic">Business Burn</h2>
+                <h2 className="text-2xl font-black uppercase italic text-cyan-400">Business Burn</h2>
                 <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
                     <button
                         onClick={() => setCategoryFilter('All')}
