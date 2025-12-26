@@ -19,76 +19,79 @@ const InventoryView: React.FC<InventoryViewProps> = ({ setShowModal, setEditingP
     );
 
     return (
-        <div className="space-y-8 animate-fadeIn font-sans">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <h2 className="heading-page">Inventory Matrix</h2>
+        <div className="space-y-6 animate-fadeIn">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div>
+                    <h2 className="heading-page">Inventory</h2>
+                    <p className="subheading">Manage stock across all locations</p>
+                </div>
                 <div className="flex gap-3 w-full md:w-auto">
-                    <div className="relative flex-1 md:w-72">
-                        <i className="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-white/30 text-xs"></i>
+                    <div className="relative flex-1 md:w-64">
+                        <i className="fa-solid fa-search input-icon"></i>
                         <input
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Search Products..."
-                            className="input-std pl-10 h-12 uppercase tracking-widest text-[10px]"
+                            placeholder="Search..."
+                            className="input-std input-with-icon"
                         />
                     </div>
-                    <button onClick={() => setShowModal('transfer')} className="btn btn-secondary whitespace-nowrap">
-                        Move Stock
+                    <button onClick={() => setShowModal('transfer')} className="btn btn-secondary">
+                        Transfer
                     </button>
-                    <button onClick={() => { setEditingProduct(null); setShowModal('product'); }} className="btn btn-primary whitespace-nowrap shadow-xl shadow-cyan-400/20">
-                        New Drop
+                    <button onClick={() => { setEditingProduct(null); setShowModal('product'); }} className="btn btn-primary">
+                        Add Product
                     </button>
                 </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
                 {filteredProducts.map(p => (
-                    <div key={p.id} className="card-std group hover:border-cyan-400/20">
-                        <div className="p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between bg-white/5 border-b border-white/5">
+                    <div key={p.id} className="card-std group">
+                        <div className="card-header">
                             <div>
-                                <h3 className="text-2xl font-black uppercase italic leading-none text-white">{p.name}</h3>
-                                <div className="flex items-center gap-3 mt-2">
-                                    <span className="px-2 py-1 bg-white/10 rounded text-[9px] font-bold uppercase tracking-widest text-white/60">{p.category}</span>
-                                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">Cost: ₹{p.costPrice}</span>
-                                    <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-400">Sale: ₹{p.salePrice}</span>
+                                <h3 className="text-lg font-semibold text-white">{p.name}</h3>
+                                <div className="flex items-center gap-3 mt-1">
+                                    <span className="px-2 py-0.5 bg-white/10 rounded text-[10px] font-medium text-white/60 uppercase tracking-wide">{p.category}</span>
+                                    <span className="text-xs text-[#8e8e93]">Cost: ₹{p.costPrice}</span>
+                                    <span className="text-xs text-[#0a84ff] font-medium">Sale: ₹{p.salePrice}</span>
                                 </div>
                             </div>
-                            <div className="flex gap-2 mt-4 md:mt-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => { setEditingProduct(p); setShowModal('product'); }} className="btn-icon bg-cyan-400/10 text-cyan-400 hover:bg-cyan-400 hover:text-black">
+                            <div className="flex gap-2">
+                                <button onClick={() => { setEditingProduct(p); setShowModal('product'); }} className="btn-icon">
                                     <i className="fa-solid fa-pen text-xs"></i>
                                 </button>
-                                <button onClick={() => { if (confirm('Delete this entire product?')) deleteProduct(p.id); }} className="btn-icon bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white">
+                                <button onClick={() => { if (confirm('Delete this entire product?')) deleteProduct(p.id); }} className="btn-icon text-[#ff453a] hover:bg-[#ff453a]/10 hover:text-[#ff453a]">
                                     <i className="fa-solid fa-trash text-xs"></i>
                                 </button>
                             </div>
                         </div>
 
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead className="bg-black/20">
+                            <table className="table-std">
+                                <thead>
                                     <tr>
-                                        <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-white/30">Size</th>
-                                        <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-white/30 text-center">Broken Alley (Hub)</th>
-                                        <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-white/30 text-center">Street Junkies</th>
-                                        <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-white/30 text-center">CC</th>
-                                        <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-white/30 text-center">Unique Code</th>
-                                        <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-white/30 text-right">Actions</th>
+                                        <th>Size</th>
+                                        <th className="text-center">Broken Alley (Hub)</th>
+                                        <th className="text-center">Street Junkies</th>
+                                        <th className="text-center">CC</th>
+                                        <th className="text-center">Unique Code</th>
+                                        <th className="text-right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-white/5">
+                                <tbody>
                                     {p.variants.map(v => (
-                                        <tr key={v.size} className="hover:bg-white/5 transition-colors">
-                                            <td className="px-6 py-4 font-black text-cyan-400 text-sm">{v.size}</td>
-                                            <td className={`px-6 py-4 text-center font-bold text-sm ${v.stockBrokenAlley > 0 && v.stockBrokenAlley <= 2 ? 'text-red-500 animate-pulse' : 'text-white/60'}`}>
+                                        <tr key={v.size}>
+                                            <td className="font-medium text-white">{v.size}</td>
+                                            <td className={`text-center font-medium ${v.stockBrokenAlley > 0 && v.stockBrokenAlley <= 2 ? 'text-[#ff453a]' : 'text-[#8e8e93]'}`}>
                                                 {v.stockBrokenAlley}
                                             </td>
-                                            <td className="px-6 py-4 text-center font-bold text-sm text-white/60">{v.stockStreetJunkies}</td>
-                                            <td className="px-6 py-4 text-center font-bold text-sm text-white/60">{v.stockCC}</td>
-                                            <td className="px-6 py-4 text-center text-xs font-mono text-white/30">{v.uniqueCode}</td>
-                                            <td className="px-6 py-4 text-right">
+                                            <td className="text-center text-[#8e8e93]">{v.stockStreetJunkies}</td>
+                                            <td className="text-center text-[#8e8e93]">{v.stockCC}</td>
+                                            <td className="text-center text-xs font-mono text-[#8e8e93]/70">{v.uniqueCode}</td>
+                                            <td className="text-right">
                                                 <button
                                                     onClick={() => setQrModal({ code: v.uniqueCode, label: `${p.name} - ${v.size}` })}
-                                                    className="btn-icon w-8 h-8 ml-auto bg-white/5 hover:bg-white/20"
+                                                    className="btn-icon w-8 h-8 ml-auto"
                                                 >
                                                     <i className="fa-solid fa-qrcode text-xs"></i>
                                                 </button>
@@ -104,10 +107,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({ setShowModal, setEditingP
 
             {/* Print Logic Modal */}
             {qrModal && (
-                <div onClick={() => setQrModal(null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fadeIn">
-                    <div onClick={e => e.stopPropagation()} className="card-std p-10 flex flex-col items-center bg-[#0a0a0a] border-white/10 shadow-2xl">
+                <div onClick={() => setQrModal(null)} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+                    <div onClick={e => e.stopPropagation()} className="card-std p-8 flex flex-col items-center shadow-2xl">
                         <QRCodeGenerator value={qrModal.code} label={qrModal.label} />
-                        <button onClick={() => setQrModal(null)} className="btn btn-secondary mt-8 w-full">Close</button>
+                        <button onClick={() => setQrModal(null)} className="btn btn-secondary mt-6 w-full">Close Dialog</button>
                     </div>
                 </div>
             )}

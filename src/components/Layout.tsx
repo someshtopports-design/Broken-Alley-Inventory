@@ -1,90 +1,86 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { View } from '../types';
 
 interface LayoutProps {
     children: React.ReactNode;
-    activeView: View;
+    currentView: View;
     setView: (view: View) => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeView, setView }) => {
-    const navItems = [
-        { id: 'Dashboard', icon: 'fa-chart-line', label: 'Home' },
-        { id: 'Inventory', icon: 'fa-box', label: 'Stock' },
-        { id: 'Sales', icon: 'fa-shopping-cart', label: 'Sales' },
-        { id: 'Expenses', icon: 'fa-wallet', label: 'Costs' },
-        { id: 'Customers', icon: 'fa-users', label: 'CRM' },
-        { id: 'AIConsole', icon: 'fa-wand-magic-sparkles', label: 'AI' }
+const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
+    const navItems: { view: View; icon: string; label: string }[] = [
+        { view: 'Dashboard', icon: 'fa-chart-pie', label: 'Overview' },
+        { view: 'Sales', icon: 'fa-cart-shopping', label: 'Sales' },
+        { view: 'Inventory', icon: 'fa-boxes-stacked', label: 'Inventory' },
+        { view: 'Expenses', icon: 'fa-wallet', label: 'Expenses' },
+        { view: 'Customers', icon: 'fa-users', label: 'Customers' },
+        { view: 'AIConsole', icon: 'fa-wand-magic-sparkles', label: 'AI Console' },
     ];
 
     return (
-        <div className="min-h-screen pb-24 lg:pb-0 lg:pl-64 flex flex-col text-white font-sans transition-all duration-300">
-            {/* Sidebar - Desktop */}
-            <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-64 glass border-r border-white/10 p-6 z-50">
-                <div className="flex items-center gap-3 mb-10 px-2">
-                    <div className="w-10 h-10 bg-cyan-400 rounded-lg flex items-center justify-center shadow-[0_0_20px_rgba(34,211,238,0.3)]">
-                        <i className="fa-solid fa-bolt text-black text-xl"></i>
-                    </div>
-                    <h1 className="font-bold text-xl tracking-tighter">BROKEN ALLEY</h1>
+        <div className="flex min-h-screen bg-black text-white font-sans selection:bg-[#0a84ff] selection:text-white">
+            {/* Desktop Sidebar */}
+            <aside className="hidden lg:flex flex-col w-64 border-r border-white/5 bg-[#1c1c1e] fixed h-full z-50">
+                <div className="p-8">
+                    <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-3">
+                        <i className="fa-solid fa-layer-group text-[#0a84ff]"></i>
+                        BrokenAlley
+                    </h1>
+                    <p className="text-xs text-[#8e8e93] mt-1 font-medium tracking-wide">Operations OS</p>
                 </div>
 
-                <nav className="flex-1 space-y-2">
+                <nav className="flex-1 px-4 space-y-1">
                     {navItems.map((item) => (
                         <button
-                            key={item.id}
-                            onClick={() => setView(item.id as View)}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeView === item.id
-                                ? 'bg-cyan-400 text-black font-bold shadow-lg shadow-cyan-400/20'
-                                : 'hover:bg-white/10 text-white/70'
+                            key={item.view}
+                            onClick={() => setView(item.view)}
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-[10px] text-sm font-medium transition-all duration-200 ${currentView === item.view
+                                    ? 'bg-[#0a84ff] text-white shadow-sm'
+                                    : 'text-[#8e8e93] hover:bg-white/5 hover:text-white'
                                 }`}
                         >
-                            <i className={`fa-solid ${item.icon} w-6`}></i>
+                            <i className={`fa-solid ${item.icon} w-5 text-center ${currentView === item.view ? 'opacity-100' : 'opacity-70'}`}></i>
                             {item.label}
                         </button>
                     ))}
                 </nav>
 
-                <div className="mt-auto p-4 glass rounded-2xl border-cyan-400/20">
-                    <p className="text-xs text-white/50 mb-1">Status</p>
-                    <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
-                        <span className="text-sm font-medium">Syncing Real-time</span>
+                <div className="p-6 border-t border-white/5">
+                    <div className="flex items-center gap-3 px-2">
+                        <div className="w-8 h-8 rounded-full bg-[#2c2c2e] flex items-center justify-center text-xs font-bold text-[#8e8e93]">
+                            BA
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium text-white">Admin User</p>
+                            <p className="text-xs text-[#8e8e93]">admin@brokenalley.com</p>
+                        </div>
                     </div>
                 </div>
             </aside>
 
-            {/* Header - Mobile */}
-            <header className="lg:hidden px-6 py-4 glass sticky top-0 z-40 flex items-center justify-between border-b border-white/5 backdrop-blur-xl">
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-cyan-400 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(34,211,238,0.3)]">
-                        <i className="fa-solid fa-bolt text-black text-xs"></i>
-                    </div>
-                    <h1 className="font-black text-lg tracking-tighter italic">BROKEN ALLEY</h1>
-                </div>
-                <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_10px_rgba(34,211,238,0.8)]"></div>
-            </header>
+            {/* Mobile Header */}
+            <div className="lg:hidden fixed top-0 w-full z-50 bg-[#1c1c1e]/80 backdrop-blur-xl border-b border-white/5 px-6 py-4 flex justify-between items-center">
+                <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                    <i className="fa-solid fa-layer-group text-[#0a84ff]"></i>
+                    BrokenAlley
+                </h1>
+            </div>
 
             {/* Main Content */}
-            <main className="flex-1 p-4 lg:p-10 w-full max-w-7xl mx-auto">
+            <main className="flex-1 lg:ml-64 p-6 lg:p-10 pt-24 lg:pt-10 max-w-[1600px] mx-auto w-full">
                 {children}
             </main>
 
-            {/* Bottom Nav - Mobile */}
-            <nav className="lg:hidden fixed bottom-4 left-4 right-4 glass rounded-2xl border border-white/10 flex justify-between px-2 py-3 z-50 shadow-2xl backdrop-blur-2xl">
-                {navItems.map((item) => (
+            {/* Mobile Bottom Nav */}
+            <nav className="lg:hidden fixed bottom-6 left-6 right-6 bg-[#1c1c1e]/90 backdrop-blur-2xl border border-white/10 rounded-[20px] p-2 flex justify-between items-center shadow-2xl z-50">
+                {navItems.slice(0, 5).map((item) => (
                     <button
-                        key={item.id}
-                        onClick={() => setView(item.id as View)}
-                        className={`flex flex-col items-center justify-center gap-1 w-full transition-all ${activeView === item.id
-                            ? 'text-cyan-400 scale-110'
-                            : 'text-white/40 hover:text-white/60'
+                        key={item.view}
+                        onClick={() => setView(item.view)}
+                        className={`flex flex-col items-center justify-center w-14 h-14 rounded-[16px] transition-all duration-300 ${currentView === item.view ? 'bg-[#0a84ff] text-white shadow-lg shadow-[#0a84ff]/20 translate-y-[-10px]' : 'text-[#8e8e93]'
                             }`}
                     >
-                        <i className={`fa-solid ${item.icon} text-lg ${activeView === item.id ? 'drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]' : ''}`}></i>
-                        {activeView === item.id && (
-                            <span className="text-[8px] font-black uppercase tracking-widest leading-none mt-1 animate-fadeIn">{item.label}</span>
-                        )}
+                        <i className={`fa-solid ${item.icon} text-lg mb-0.5`}></i>
                     </button>
                 ))}
             </nav>
