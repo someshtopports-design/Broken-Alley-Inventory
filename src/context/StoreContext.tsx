@@ -1,21 +1,31 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Product, Customer, Sale, Expense, StockTransfer } from '../types';
+import { db } from '../services/firebase';
+import {
+    collection,
+    onSnapshot,
+    addDoc,
+    updateDoc,
+    doc,
+    deleteDoc,
+    query,
+    orderBy,
+    setDoc
+} from 'firebase/firestore';
 
 interface StoreContextType {
     products: Product[];
     customers: Customer[];
     sales: Sale[];
     expenses: Expense[];
-    recordSale: (data: any) => void;
-    handleTransfer: (transfer: StockTransfer) => void;
-    addExpense: (expense: Expense) => void;
-    addProduct: (product: Product) => void;
-    markRTO: (saleId: string) => void;
-    deleteProduct: (id: string) => void;
-    updateProduct: (product: Product) => void;
+    recordSale: (data: any) => Promise<void>;
+    handleTransfer: (transfer: StockTransfer) => Promise<void>;
+    addExpense: (expense: Expense) => Promise<void>;
+    addProduct: (product: Product) => Promise<void>;
+    markRTO: (saleId: string) => Promise<void>;
+    deleteProduct: (id: string) => Promise<void>;
+    updateProduct: (product: Product) => Promise<void>;
 }
-
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
@@ -31,95 +41,102 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const [sales, setSales] = useState<Sale[]>([]);
     const [expenses, setExpenses] = useState<Expense[]>([]);
 
-    // Persistence Engine
+    // Real-time Listeners
     useEffect(() => {
-        const savedData = localStorage.getItem('brokenAlley_data_v6');
-        if (savedData) {
-            const { p, c, s, e } = JSON.parse(savedData);
-            setProducts(p || []); setCustomers(c || []); setSales(s || []); setExpenses(e || []);
-        } else {
-            // Initial Data seeding if empty
-            setProducts([
-                {
-                    id: '1', sku: 'BA-TEE-01', name: 'Broken Alley Logo Tee', costPrice: 400, salePrice: 1299,
-                    variants: [
-                        { size: 'S', stockBrokenAlley: 20, stockStreetJunkies: 5, stockCC: 2, uniqueCode: 'BA-TEE-01-S' },
-                        { size: 'M', stockBrokenAlley: 30, stockStreetJunkies: 10, stockCC: 5, uniqueCode: 'BA-TEE-01-M' },
-                        { size: 'L', stockBrokenAlley: 25, stockStreetJunkies: 5, stockCC: 8, uniqueCode: 'BA-TEE-01-L' },
-                        { size: 'XL', stockBrokenAlley: 15, stockStreetJunkies: 0, stockCC: 0, uniqueCode: 'BA-TEE-01-XL' }
-                    ],
-                    category: 'T-Shirts'
-                }
-            ]);
-        }
-    }, []);
+        try {
+            const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
+                setProducts(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Product)));
+            });
 
-    useEffect(() => {
-        if (products.length > 0) {
-            localStorage.setItem('brokenAlley_data_v6', JSON.stringify({ p: products, c: customers, s: sales, e: expenses }));
-        }
-    }, [products, customers, sales, expenses]);
+            const unsubCustomers = onSnapshot(collection(db, 'customers'), (snapshot) => {
+                setCustomers(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Customer)));
+            });
 
-    const handleTransfer = (transfer: StockTransfer) => {
-        setProducts(prev => prev.map(p => {
-            if (p.id !== transfer.productId) return p;
-            return {
-                ...p,
-                variants: p.variants.map(v => {
-                    if (v.size.toLowerCase() !== transfer.size.toLowerCase()) return v;
-                    const nextV = { ...v };
-                    const fromKey = transfer.from === 'BrokenAlley' ? 'stockBrokenAlley' : transfer.from === 'StreetJunkies' ? 'stockStreetJunkies' : 'stockCC';
-                    const toKey = transfer.to === 'BrokenAlley' ? 'stockBrokenAlley' : transfer.to === 'StreetJunkies' ? 'stockStreetJunkies' : 'stockCC';
+            const unsubSales = onSnapshot(query(collection(db, 'sales'), orderBy('date', 'desc')), (snapshot) => {
+                setSales(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Sale)));
+            });
 
-                    if (nextV[fromKey] >= transfer.quantity) {
-                        nextV[fromKey] = Math.max(0, nextV[fromKey] - transfer.quantity);
-                        nextV[toKey] += transfer.quantity;
-                    }
-                    return nextV;
-                })
+            const unsubExpenses = onSnapshot(query(collection(db, 'expenses'), orderBy('date', 'desc')), (snapshot) => {
+                setExpenses(snapshot.docs.map(d => ({ ...d.data(), id: d.id } as Expense)));
+            });
+
+            return () => {
+                unsubProducts();
+                unsubCustomers();
+                unsubSales();
+                unsubExpenses();
             };
-        }));
+        } catch (error) {
+            console.error("Firebase connection failed:", error);
+        }
+    }, [db]);
+
+    const handleTransfer = async (transfer: StockTransfer) => {
+        const product = products.find(p => p.id === transfer.productId);
+        if (!product) return;
+
+        const updatedVariants = product.variants.map(v => {
+            if (v.size.toLowerCase() !== transfer.size.toLowerCase()) return v;
+            const nextV = { ...v };
+            const fromKey = transfer.from === 'BrokenAlley' ? 'stockBrokenAlley' : transfer.from === 'StreetJunkies' ? 'stockStreetJunkies' : 'stockCC';
+            const toKey = transfer.to === 'BrokenAlley' ? 'stockBrokenAlley' : transfer.to === 'StreetJunkies' ? 'stockStreetJunkies' : 'stockCC';
+
+            if (nextV[fromKey] >= transfer.quantity) {
+                nextV[fromKey] = Math.max(0, nextV[fromKey] - transfer.quantity);
+                nextV[toKey] += transfer.quantity;
+            }
+            return nextV;
+        });
+
+        const productRef = doc(db, 'products', transfer.productId);
+        await updateDoc(productRef, { variants: updatedVariants });
     };
 
-    const recordSale = (data: any) => {
-        // Try precise match by uniqueCode first if available
-        let product = data.uniqueCode ? products.find(p => p.variants.some(v => v.uniqueCode === data.uniqueCode)) : products.find(p => p.name.toLowerCase().includes(data.itemName?.toLowerCase() || ''));
+    const recordSale = async (data: any) => {
+        let product = data.uniqueCode
+            ? products.find(p => p.variants.some(v => v.uniqueCode === data.uniqueCode))
+            : products.find(p => p.name.toLowerCase().includes(data.itemName?.toLowerCase() || ''));
 
-        // Fallback or default
-        if (!product) product = products[0];
+        if (!product && products.length > 0) product = products[0];
+        if (!product) return;
 
-        // Determine size: manual selection OR derived from uniqueCode
         let size = data.size?.toUpperCase();
-        if (data.uniqueCode && product) {
+        if (data.uniqueCode) {
             const variant = product.variants.find(v => v.uniqueCode === data.uniqueCode);
             if (variant) size = variant.size;
         }
-        if (!size) size = product.variants[0].size;
+        if (!size && product.variants.length > 0) size = product.variants[0].size;
 
-        // 1. Update Customer
+        let customerId = 'walk-in';
+        let customerName = 'Walk-in Customer';
         let customer = customers.find(c => c.phone === data.customerPhone || (data.customerName && c.name === data.customerName));
-        if (!customer && data.customerName) {
-            customer = {
-                id: Date.now().toString(),
-                name: data.customerName,
-                phone: data.customerPhone || 'N/A',
-                address: data.customerAddress || 'N/A',
-                type: data.customerType || 'Customer',
-                totalSpent: 0,
-                lastOrderDate: new Date().toISOString()
-            };
-            setCustomers(prev => [...prev, customer!]);
+
+        if (data.customerName) {
+            if (customer) {
+                customerId = customer.id;
+                customerName = customer.name;
+            } else {
+                const newCustomer: any = {
+                    name: data.customerName,
+                    phone: data.customerPhone || 'N/A',
+                    address: data.customerAddress || 'N/A',
+                    type: data.customerType || 'Customer',
+                    totalSpent: 0,
+                    lastOrderDate: new Date().toISOString()
+                };
+                const docRef = await addDoc(collection(db, 'customers'), newCustomer);
+                customerId = docRef.id;
+                customerName = data.customerName;
+            }
         }
 
-        // 2. Create Sale
-        const newSale: Sale = {
-            id: Date.now().toString(),
+        const saleData: any = {
             productId: product.id,
             productName: product.name,
             size,
-            customerId: customer?.id || 'walk-in',
-            customerName: customer?.name || 'Walk-in Customer',
-            channel: (data.channel || 'Website') as Sale['channel'],
+            customerId,
+            customerName,
+            channel: data.channel || 'Website',
             quantity: data.quantity || 1,
             totalAmount: data.amount || (product.salePrice * (data.quantity || 1)),
             date: new Date().toISOString(),
@@ -127,63 +144,63 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             customerType: data.customerType || 'Customer'
         };
 
-        setSales(prev => [newSale, ...prev]);
+        await addDoc(collection(db, 'sales'), saleData);
 
-        // 3. Update Inventory
-        setProducts(prev => prev.map(p => {
-            if (p.id !== product!.id) return p;
-            return {
-                ...p,
-                variants: p.variants.map(v => {
-                    if (v.size.toLowerCase() !== size.toLowerCase()) return v;
-                    // Deduct from appropriate channel location
-                    const channelKey = newSale.channel === 'StreetJunkies' ? 'stockStreetJunkies' : newSale.channel === 'CC' ? 'stockCC' : 'stockBrokenAlley';
-                    return { ...v, [channelKey]: Math.max(0, v[channelKey] - newSale.quantity) };
-                })
-            };
-        }));
+        const updatedVariants = product.variants.map(v => {
+            if (v.size.toLowerCase() !== size.toLowerCase()) return v;
+            const channelKey = saleData.channel === 'StreetJunkies' ? 'stockStreetJunkies' : saleData.channel === 'CC' ? 'stockCC' : 'stockBrokenAlley';
+            return { ...v, [channelKey]: Math.max(0, v[channelKey] - saleData.quantity) };
+        });
 
-        // 4. Update Customer LTV
-        if (customer) {
-            setCustomers(prev => prev.map(c => c.id === customer!.id ? { ...c, totalSpent: c.totalSpent + newSale.totalAmount, lastOrderDate: newSale.date } : c));
+        const productRef = doc(db, 'products', product.id);
+        await updateDoc(productRef, { variants: updatedVariants });
+
+        if (customerId !== 'walk-in') {
+            const customerRef = doc(db, 'customers', customerId);
+            const currentSpent = customer ? customer.totalSpent : 0;
+            await updateDoc(customerRef, {
+                totalSpent: currentSpent + saleData.totalAmount,
+                lastOrderDate: saleData.date
+            });
         }
     };
 
-    const markRTO = (saleId: string) => {
+    const markRTO = async (saleId: string) => {
         const sale = sales.find(s => s.id === saleId);
         if (!sale || sale.status === 'rto') return;
 
-        // 1. Mark Sale as RTO
-        setSales(prev => prev.map(s => s.id === saleId ? { ...s, status: 'rto' } : s));
+        const saleRef = doc(db, 'sales', saleId);
+        await updateDoc(saleRef, { status: 'rto' });
 
-        // 2. Restock Inventory (Return to Source)
-        setProducts(prev => prev.map(p => {
-            if (p.id !== sale.productId) return p;
-            return {
-                ...p,
-                variants: p.variants.map(v => {
-                    if (v.size !== sale.size) return v;
-                    const channelKey = sale.channel === 'StreetJunkies' ? 'stockStreetJunkies' : sale.channel === 'CC' ? 'stockCC' : 'stockBrokenAlley';
-                    return { ...v, [channelKey]: v[channelKey] + sale.quantity };
-                })
-            };
-        }));
+        const product = products.find(p => p.id === sale.productId);
+        if (product) {
+            const updatedVariants = product.variants.map(v => {
+                if (v.size !== sale.size) return v;
+                const channelKey = sale.channel === 'StreetJunkies' ? 'stockStreetJunkies' : sale.channel === 'CC' ? 'stockCC' : 'stockBrokenAlley';
+                return { ...v, [channelKey]: v[channelKey] + sale.quantity };
+            });
+            const productRef = doc(db, 'products', product.id);
+            await updateDoc(productRef, { variants: updatedVariants });
+        }
     };
 
-    const deleteProduct = (id: string) => {
-        setProducts(prev => prev.filter(p => p.id !== id));
+    const deleteProduct = async (id: string) => {
+        await deleteDoc(doc(db, 'products', id));
     };
 
-    const updateProduct = (updated: Product) => {
-        setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
+    const updateProduct = async (updated: Product) => {
+        const { id, ...data } = updated;
+        await updateDoc(doc(db, 'products', id), data as any);
     };
 
-    const addExpense = (newEx: Expense) => {
-        setExpenses(prev => [newEx, ...prev]);
+    const addExpense = async (newEx: Expense) => {
+        const { id, ...data } = newEx;
+        await addDoc(collection(db, 'expenses'), data);
     };
 
-    const addProduct = (prod: Product) => {
-        setProducts(prev => [...prev, prod]);
+    const addProduct = async (prod: Product) => {
+        const { id, ...data } = prod;
+        await addDoc(collection(db, 'products'), data);
     };
 
     return (

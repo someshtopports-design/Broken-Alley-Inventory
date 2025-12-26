@@ -70,43 +70,40 @@ const DashboardView: React.FC<DashboardViewProps> = ({ setView, dateRange }) => 
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 glass p-6 rounded-3xl h-[350px]">
-                    <h3 className="font-bold mb-6 flex items-center gap-2">
-                        <i className="fa-solid fa-chart-line text-cyan-400"></i>
-                        Revenue Stream (Last 10 Sales)
+            <div className="grid grid-cols-1 gap-6">
+                <div className="glass p-6 rounded-3xl flex flex-col h-[400px]">
+                    <h3 className="font-bold mb-4 flex items-center gap-2">
+                        <i className="fa-solid fa-triangle-exclamation text-red-400"></i>
+                        Low Stock Alerts (Hub)
                     </h3>
-                    <ResponsiveContainer width="100%" height="85%">
-                        <BarChart data={stats.recentSales}>
-                            <XAxis dataKey="date" hide />
-                            <Tooltip contentStyle={{ background: '#111', border: 'none', borderRadius: '12px', fontSize: '12px', fontFamily: '"Space Grotesk", sans-serif' }} />
-                            <Bar dataKey="totalAmount" fill="#22d3ee" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
-                <div className="glass p-6 rounded-3xl flex flex-col">
-                    <h3 className="font-bold mb-4">Hub Stock Alerts (1-2 Left)</h3>
-                    <div className="space-y-3 overflow-y-auto max-h-[250px] pr-2 custom-scrollbar">
+                    <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1">
                         {products.flatMap(p =>
                             p.variants
                                 .filter(v => v.stockBrokenAlley > 0 && v.stockBrokenAlley <= 2)
                                 .map((v, i) => (
-                                    <div key={`${p.id}-${v.size}`} className="flex items-center justify-between p-3 rounded-2xl bg-red-400/5 border border-red-400/10">
-                                        <div>
-                                            <p className="text-xs font-bold truncate text-red-400">{p.name} ({v.size})</p>
-                                            <p className="text-[10px] text-white/40 uppercase tracking-widest">Hub Stock: {v.stockBrokenAlley}</p>
+                                    <div key={`${p.id}-${v.size}`} className="flex items-center justify-between p-4 rounded-2xl bg-red-400/5 border border-red-400/10 hover:bg-red-400/10 transition-colors">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-full bg-red-400/10 flex items-center justify-center">
+                                                <i className="fa-solid fa-shirt text-red-400 text-sm"></i>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold truncate text-white">{p.name} ({v.size})</p>
+                                                <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest mt-1">Only {v.stockBrokenAlley} Left</p>
+                                            </div>
                                         </div>
-                                        <i className="fa-solid fa-triangle-exclamation text-red-400 text-xs animate-pulse"></i>
+                                        <button onClick={() => setView('Inventory')} className="px-4 py-2 rounded-xl bg-white/5 text-[10px] font-bold uppercase tracking-wider hover:bg-white/10 transition-all">
+                                            Restock
+                                        </button>
                                     </div>
                                 ))
                         )}
                         {products.every(p => p.variants.every(v => v.stockBrokenAlley === 0 || v.stockBrokenAlley > 2)) && (
-                            <p className="text-xs text-white/20 text-center py-10 font-bold uppercase tracking-widest">All Clear</p>
+                            <div className="flex flex-col items-center justify-center h-full text-white/20">
+                                <i className="fa-solid fa-circle-check text-4xl mb-4 text-green-400/20"></i>
+                                <p className="text-xs font-bold uppercase tracking-widest">All Stock Levels Normal</p>
+                            </div>
                         )}
                     </div>
-                    <button onClick={() => setView('Inventory')} className="mt-auto w-full py-4 text-[10px] font-black uppercase tracking-widest text-cyan-400 border border-cyan-400/20 rounded-2xl hover:bg-cyan-400/10 transition-all">
-                        Full Inventory
-                    </button>
                 </div>
             </div>
         </div>
