@@ -6,15 +6,37 @@ import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface DashboardViewProps {
     setView: (view: View) => void;
+    dateRange: { start: Date | null; end: Date | null };
 }
 
-
-const DashboardView: React.FC<DashboardViewProps> = ({ setView }) => {
+const DashboardView: React.FC<DashboardViewProps> = ({ setView, dateRange }) => {
     const { products, sales, expenses } = useStore();
 
     const stats = useMemo(() => {
-        const totalRev = sales.filter(s => s.status !== 'rto').reduce((a, b) => a + b.totalAmount, 0); // Exclude RTOs from revenue
-        const totalExp = expenses.reduce((a, b) => a + b.amount, 0);
+        let filteredSales = sales.filter(s => s.status !== 'rto');
+        let filteredExpenses = expenses;
+
+        if (dateRange && dateRange.start && dateRange.end) {
+            const start = new Date(dateRange.start);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(dateRange.end);
+            end.setHours(23, 59, 59, 999);
+
+            filteredSales = filteredSales.filter(s => {
+                const d = new Date(s.date);
+                d.setHours(0, 0, 0, 0);
+                return d >= start && d <= end;
+            });
+
+            filteredExpenses = filteredExpenses.filter(e => {
+                const d = new Date(e.date);
+                d.setHours(0, 0, 0, 0);
+                return d >= start && d <= end;
+            });
+        }
+
+        const totalRev = filteredSales.reduce((a, b) => a + b.totalAmount, 0);
+        const totalExp = filteredExpenses.reduce((a, b) => a + b.amount, 0);
         const totalInvValue = products.reduce((acc, p) => {
             const totalUnits = p.variants.reduce((vAcc, v) => vAcc + v.stockBrokenAlley + v.stockStreetJunkies + v.stockCC, 0);
             return acc + (totalUnits * p.costPrice);
@@ -24,9 +46,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ setView }) => {
             revenue: totalRev,
             expenses: totalExp,
             profit: totalRev - totalExp,
-            inventoryValue: totalInvValue
+            inventoryValue: totalInvValue,
+            recentSales: filteredSales.slice(-20) // Use for chart
         };
-    }, [sales, expenses, products]);
+    }, [sales, expenses, products, dateRange]);
 
     return (
         <div className="space-y-6 animate-fadeIn relative font-sans">
@@ -54,7 +77,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ setView }) => {
                         Revenue Stream (Last 10 Sales)
                     </h3>
                     <ResponsiveContainer width="100%" height="85%">
-                        <BarChart data={sales.filter(s => s.status !== 'rto').slice(-10)}>
+                        <BarChart data={stats.recentSales}>
                             <XAxis dataKey="date" hide />
                             <Tooltip contentStyle={{ background: '#111', border: 'none', borderRadius: '12px', fontSize: '12px', fontFamily: '"Space Grotesk", sans-serif' }} />
                             <Bar dataKey="totalAmount" fill="#22d3ee" radius={[4, 4, 0, 0]} />

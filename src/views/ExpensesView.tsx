@@ -1,19 +1,34 @@
-
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { Expense } from '../types';
+import { exportExpensesToCSV } from '../utils/export';
 
 interface ExpensesViewProps {
     setShowModal: (modal: 'product' | 'transfer' | 'expense' | null) => void;
+    dateRange: { start: Date | null; end: Date | null };
 }
 
-const ExpensesView: React.FC<ExpensesViewProps> = ({ setShowModal }) => {
+const ExpensesView: React.FC<ExpensesViewProps> = ({ setShowModal, dateRange }) => {
     const { expenses } = useStore();
     const [categoryFilter, setCategoryFilter] = useState<'All' | Expense['category']>('All');
 
-    const filteredExpenses = categoryFilter === 'All'
-        ? expenses
-        : expenses.filter(e => e.category === categoryFilter);
+    const filteredExpenses = expenses.filter(e => {
+        const matchesCategory = categoryFilter === 'All' || e.category === categoryFilter;
+        let matchesDate = true;
+        if (dateRange && dateRange.start && dateRange.end) {
+            const expDate = new Date(e.date);
+            expDate.setHours(0, 0, 0, 0);
+
+            const start = new Date(dateRange.start);
+            start.setHours(0, 0, 0, 0);
+
+            const end = new Date(dateRange.end);
+            end.setHours(23, 59, 59, 999);
+
+            matchesDate = expDate >= start && expDate <= end;
+        }
+        return matchesCategory && matchesDate;
+    });
 
     const categories: Expense['category'][] = ['Marketing', 'Delivery', 'Samples', 'Travel', 'Production', 'Manufacturing', 'Other'];
 
@@ -38,7 +53,15 @@ const ExpensesView: React.FC<ExpensesViewProps> = ({ setShowModal }) => {
                         </button>
                     ))}
                 </div>
-                <button onClick={() => setShowModal('expense')} className="bg-red-400 text-black px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-red-400/20 active:scale-95 transition-all w-full md:w-auto whitespace-nowrap">Add Expense</button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => exportExpensesToCSV(filteredExpenses)}
+                        className="glass px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white border border-white/10 transition-all whitespace-nowrap"
+                    >
+                        Export List
+                    </button>
+                    <button onClick={() => setShowModal('expense')} className="bg-red-400 text-black px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-red-400/20 active:scale-95 transition-all w-full md:w-auto whitespace-nowrap">Add Expense</button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4">

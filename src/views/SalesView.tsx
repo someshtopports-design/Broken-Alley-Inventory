@@ -5,7 +5,13 @@ import QRScanner from '../components/QRScanner';
 import { Product, ProductVariant } from '../types';
 
 
-const SalesView: React.FC = () => {
+import { exportSalesToCSV } from '../utils/export';
+
+interface SalesViewProps {
+    dateRange: { start: Date | null; end: Date | null };
+}
+
+const SalesView: React.FC<SalesViewProps> = ({ dateRange }) => {
     const { sales, products, recordSale, markRTO } = useStore();
     const [showPos, setShowPos] = useState(false);
     const [scanMode, setScanMode] = useState(false);
@@ -66,7 +72,26 @@ const SalesView: React.FC = () => {
         setScanMode(false);
     };
 
-    const filteredSales = showRTOs ? sales.filter(s => s.status === 'rto') : sales.filter(s => s.status !== 'rto');
+    const filteredSales = sales.filter(s => {
+        const matchesStatus = showRTOs ? s.status === 'rto' : s.status !== 'rto';
+
+        // Date Filter
+        let matchesDate = true;
+        if (dateRange && dateRange.start && dateRange.end) {
+            const saleDate = new Date(s.date);
+            saleDate.setHours(0, 0, 0, 0);
+
+            const start = new Date(dateRange.start);
+            start.setHours(0, 0, 0, 0);
+
+            const end = new Date(dateRange.end);
+            end.setHours(23, 59, 59, 999);
+
+            matchesDate = saleDate >= start && saleDate <= end;
+        }
+
+        return matchesStatus && matchesDate;
+    });
 
     return (
         <div className="space-y-6 animate-fadeIn relative font-sans">
@@ -80,6 +105,12 @@ const SalesView: React.FC = () => {
                         className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border transition-all ${showRTOs ? 'bg-red-500 text-white border-red-500' : 'border-white/20 text-white/40 hover:text-white'}`}
                     >
                         {showRTOs ? 'Show Sales' : 'Show RTOs'}
+                    </button>
+                    <button
+                        onClick={() => exportSalesToCSV(filteredSales)}
+                        className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border border-white/20 text-white/40 hover:text-white hover:bg-white/10 transition-all"
+                    >
+                        Export List
                     </button>
                 </div>
 
