@@ -98,12 +98,21 @@ body {
 }
 
 .react-datepicker__day {
-  @apply !text-white/70 !font-medium !rounded-lg !m-1 hover: !bg-white/10 hover: !text-white transition-colors text-xs;
+  @apply !text-white/70 !font-medium !rounded-lg !m-1 transition-colors text-xs;
+}
+
+.react-datepicker__day:hover {
+  @apply !bg-white/10 !text-white;
 }
 
 .react-datepicker__day--selected,
 .react-datepicker__day--keyboard-selected {
-  @apply !bg-cyan-400 !text-black !font-bold !shadow-lg !shadow-cyan-400/20 hover: !bg-cyan-300;
+  @apply !bg-cyan-400 !text-black !font-bold !shadow-lg !shadow-cyan-400/20;
+}
+
+.react-datepicker__day--selected:hover,
+.react-datepicker__day--keyboard-selected:hover {
+  @apply !bg-cyan-300;
 }
 
 .react-datepicker__day--in-range {
