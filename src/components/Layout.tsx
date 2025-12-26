@@ -35,8 +35,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
                             key={item.view}
                             onClick={() => setView(item.view)}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-[10px] text-sm font-medium transition-all duration-200 ${currentView === item.view
-                                    ? 'bg-[#0a84ff] text-white shadow-sm'
-                                    : 'text-[#8e8e93] hover:bg-white/5 hover:text-white'
+                                ? 'bg-[#0a84ff] text-white shadow-sm'
+                                : 'text-[#8e8e93] hover:bg-white/5 hover:text-white'
                                 }`}
                         >
                             <i className={`fa-solid ${item.icon} w-5 text-center ${currentView === item.view ? 'opacity-100' : 'opacity-70'}`}></i>
@@ -67,7 +67,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView }) => {
             </div>
 
             {/* Main Content */}
-            <main className="flex-1 lg:ml-64 p-6 lg:p-10 pt-24 lg:pt-10 max-w-[1600px] mx-auto w-full">
+            <main className="flex-1 lg:ml-64 p-6 lg:p-10 pb-32 lg:pb-10 pt-24 lg:pt-10 max-w-[1600px] mx-auto w-full">
                 {children}
             </main>
 
