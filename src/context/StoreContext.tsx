@@ -25,6 +25,16 @@ interface StoreContextType {
     markRTO: (saleId: string) => Promise<void>;
     deleteProduct: (id: string) => Promise<void>;
     updateProduct: (product: Product) => Promise<void>;
+    salesSession: {
+        cart: any[];
+        custName: string;
+        custPhone: string;
+        custAddr: string;
+        custType: 'Customer' | 'Actor' | 'Influencer';
+        channel: 'Website' | 'BrokenAlley' | 'StreetJunkies' | 'CC';
+        showPos: boolean;
+    };
+    updateSalesSession: (updates: any) => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -40,6 +50,21 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [sales, setSales] = useState<Sale[]>([]);
     const [expenses, setExpenses] = useState<Expense[]>([]);
+
+    // Sales Session State (Persistence)
+    const [salesSession, setSalesSession] = useState({
+        cart: [] as any[],
+        custName: '',
+        custPhone: '',
+        custAddr: '',
+        custType: 'Customer' as 'Customer' | 'Actor' | 'Influencer',
+        channel: 'BrokenAlley' as 'Website' | 'BrokenAlley' | 'StreetJunkies' | 'CC',
+        showPos: false
+    });
+
+    const updateSalesSession = (updates: Partial<typeof salesSession>) => {
+        setSalesSession(prev => ({ ...prev, ...updates }));
+    };
 
     // Real-time Listeners
     useEffect(() => {
@@ -207,7 +232,11 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
 
     return (
-        <StoreContext.Provider value={{ products, customers, sales, expenses, recordSale, handleTransfer, addExpense, addProduct, markRTO, deleteProduct, updateProduct }}>
+        <StoreContext.Provider value={{
+            products, customers, sales, expenses,
+            recordSale, handleTransfer, addExpense, addProduct, markRTO, deleteProduct, updateProduct,
+            salesSession, updateSalesSession
+        }}>
             {children}
         </StoreContext.Provider>
     );

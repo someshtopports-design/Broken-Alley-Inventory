@@ -16,28 +16,25 @@ interface CartItem {
 }
 
 const SalesView: React.FC<SalesViewProps> = ({ dateRange }) => {
-    const { sales, products, recordSale, markRTO } = useStore();
-    const [showPos, setShowPos] = useState(false);
+    const { sales, products, recordSale, markRTO, salesSession, updateSalesSession } = useStore();
+
+    // UI State (Local)
     const [scanMode, setScanMode] = useState(false);
     const [manualCode, setManualCode] = useState('');
     const [foundItem, setFoundItem] = useState<{ product: Product; variant: ProductVariant } | null>(null);
-    const [customPrice, setCustomPrice] = useState<string>(''); // String to handle empty input easily
+    const [customPrice, setCustomPrice] = useState<string>('');
     const [showRTOs, setShowRTOs] = useState(false);
 
-    // Cart State
-    const [cart, setCart] = useState<CartItem[]>([]);
-
-    // Form Stats
-    const [custName, setCustName] = useState('');
-    const [custPhone, setCustPhone] = useState('');
-    const [custAddr, setCustAddr] = useState('');
-    const [channel, setChannel] = useState<'Website' | 'BrokenAlley' | 'StreetJunkies' | 'CC'>('BrokenAlley');
-    const [custType, setCustType] = useState<'Customer' | 'Actor' | 'Influencer'>('Customer');
+    // Destructure session for easier access
+    const { cart, custName, custPhone, custAddr, custType, channel, showPos } = salesSession;
 
     const handleSearch = (code: string) => {
+        const cleanCode = code.trim().toLowerCase();
         let found: { product: Product; variant: ProductVariant } | null = null;
+
         for (const p of products) {
-            const v = p.variants.find(v => v.uniqueCode === code);
+            // Case-insensitive check
+            const v = p.variants.find(v => v.uniqueCode.toLowerCase() === cleanCode);
             if (v) {
                 found = { product: p, variant: v };
                 break;
@@ -50,7 +47,7 @@ const SalesView: React.FC<SalesViewProps> = ({ dateRange }) => {
             setScanMode(false);
             setManualCode('');
         } else {
-            alert('Item not found!');
+            alert('Item not found! Please check the code.');
         }
     };
 
@@ -58,13 +55,14 @@ const SalesView: React.FC<SalesViewProps> = ({ dateRange }) => {
         if (!foundItem) return;
         const price = parseFloat(customPrice) || foundItem.product.salePrice;
 
-        setCart([...cart, {
+        const newItem = {
             product: foundItem.product,
             variant: foundItem.variant,
             quantity: 1,
             price: price
-        }]);
+        };
 
+        updateSalesSession({ cart: [...cart, newItem] });
         setFoundItem(null);
         setCustomPrice('');
     };
@@ -72,7 +70,7 @@ const SalesView: React.FC<SalesViewProps> = ({ dateRange }) => {
     const removeFromCart = (index: number) => {
         const newCart = [...cart];
         newCart.splice(index, 1);
-        setCart(newCart);
+        updateSalesSession({ cart: newCart });
     };
 
     const handleCheckout = async () => {
@@ -90,7 +88,7 @@ const SalesView: React.FC<SalesViewProps> = ({ dateRange }) => {
                 channel: channel,
                 customerType: custType,
                 quantity: 1,
-                amount: item.price // Use the custom price from cart
+                amount: item.price
             });
         }
 
@@ -98,15 +96,22 @@ const SalesView: React.FC<SalesViewProps> = ({ dateRange }) => {
     };
 
     const resetPos = () => {
-        setShowPos(false);
         setFoundItem(null);
         setManualCode('');
-        setCustName('');
-        setCustPhone('');
-        setCustAddr('');
-        setCustType('Customer');
         setScanMode(false);
-        setCart([]);
+        // Reset session
+        updateSalesSession({
+            cart: [],
+            custName: '',
+            custPhone: '',
+            custAddr: '',
+            custType: 'Customer',
+            showPos: false
+        });
+    };
+
+    const togglePos = (open: boolean) => {
+        updateSalesSession({ showPos: open });
     };
 
     const filteredSales = sales.filter(s => {
@@ -130,7 +135,7 @@ const SalesView: React.FC<SalesViewProps> = ({ dateRange }) => {
         return matchesStatus && matchesDate;
     });
 
-    const cartTotal = cart.reduce((sum, item) => sum + item.price, 0);
+    const cartTotal = cart.reduce((sum: number, item: any) => sum + item.price, 0);
 
     return (
         <div className="space-y-6 animate-fadeIn relative">
@@ -155,7 +160,7 @@ const SalesView: React.FC<SalesViewProps> = ({ dateRange }) => {
                     >
                         {showRTOs ? 'View Active Sales' : 'View Returns'}
                     </button>
-                    <button onClick={() => setShowPos(true)} className="btn btn-primary">
+                    <button onClick={() => togglePos(true)} className="btn btn-primary">
                         <i className="fa-solid fa-plus"></i> New Sale
                     </button>
                 </div>
@@ -222,7 +227,7 @@ const SalesView: React.FC<SalesViewProps> = ({ dateRange }) => {
             {showPos && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md animate-fadeIn">
                     <div className="bg-[#1c1c1e] w-full max-w-6xl h-[85vh] flex overflow-hidden rounded-[24px] border border-white/10 shadow-2xl relative">
-                        <button onClick={resetPos} className="absolute top-6 right-6 z-10 text-[#8e8e93] hover:text-white transition-colors cursor-pointer w-8 h-8 flex items-center justify-center bg-[#2c2c2e] rounded-full border border-white/5">
+                        <button onClick={() => togglePos(false)} className="absolute top-6 right-6 z-10 text-[#8e8e93] hover:text-white transition-colors cursor-pointer w-8 h-8 flex items-center justify-center bg-[#2c2c2e] rounded-full border border-white/5">
                             <i className="fa-solid fa-xmark text-sm"></i>
                         </button>
 
@@ -328,7 +333,7 @@ const SalesView: React.FC<SalesViewProps> = ({ dateRange }) => {
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
-                                        {cart.map((item, idx) => (
+                                        {cart.map((item: any, idx: number) => (
                                             <div key={idx} className="flex items-center justify-between p-4 rounded-[12px] bg-[#2c2c2e]/50 border border-white/5 hover:border-[#0a84ff]/30 transition-colors group">
                                                 <div className="flex items-center gap-4">
                                                     <div className="w-10 h-10 rounded-lg bg-[#3a3a3c] flex items-center justify-center text-[#8e8e93] text-lg font-medium">
@@ -359,7 +364,7 @@ const SalesView: React.FC<SalesViewProps> = ({ dateRange }) => {
                                         <div className="relative">
                                             <select
                                                 value={custType}
-                                                onChange={e => setCustType(e.target.value as any)}
+                                                onChange={e => updateSalesSession({ custType: e.target.value as any })}
                                                 className="input-std appearance-none"
                                             >
                                                 <option>Customer</option>
@@ -374,7 +379,7 @@ const SalesView: React.FC<SalesViewProps> = ({ dateRange }) => {
                                         <div className="relative">
                                             <select
                                                 value={channel}
-                                                onChange={e => setChannel(e.target.value as any)}
+                                                onChange={e => updateSalesSession({ channel: e.target.value as any })}
                                                 className="input-std appearance-none"
                                             >
                                                 <option value="BrokenAlley">Broken Alley (Store)</option>
@@ -390,15 +395,15 @@ const SalesView: React.FC<SalesViewProps> = ({ dateRange }) => {
                                 <div className="grid grid-cols-3 gap-4 mb-6">
                                     <div className="col-span-1">
                                         <label className="label-text">Name</label>
-                                        <input value={custName} onChange={e => setCustName(e.target.value)} placeholder="Name" className="input-std" />
+                                        <input value={custName} onChange={e => updateSalesSession({ custName: e.target.value })} placeholder="Name" className="input-std" />
                                     </div>
                                     <div className="col-span-1">
                                         <label className="label-text">Phone</label>
-                                        <input value={custPhone} onChange={e => setCustPhone(e.target.value)} placeholder="Phone" type="tel" className="input-std" />
+                                        <input value={custPhone} onChange={e => updateSalesSession({ custPhone: e.target.value })} placeholder="Phone" type="tel" className="input-std" />
                                     </div>
                                     <div className="col-span-1">
                                         <label className="label-text">Address</label>
-                                        <input value={custAddr} onChange={e => setCustAddr(e.target.value)} placeholder="Addr" className="input-std" />
+                                        <input value={custAddr} onChange={e => updateSalesSession({ custAddr: e.target.value })} placeholder="Addr" className="input-std" />
                                     </div>
                                 </div>
 
