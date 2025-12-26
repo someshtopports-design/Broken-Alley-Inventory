@@ -13,7 +13,7 @@
 
   /* Design System - Cards */
   .card-std {
-    @apply glass rounded-[24px] border border-white/5 overflow-hidden transition-all duration-300;
+    @apply bg-black/40 backdrop-blur-xl shadow-xl rounded-[24px] border border-white/5 overflow-hidden transition-all duration-300;
   }
 
   .btn {
