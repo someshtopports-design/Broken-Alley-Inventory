@@ -53,12 +53,12 @@ body {
 }
 
 .react-datepicker__day {
-  @apply !text-white/80 !font-medium !rounded-lg hover: !bg-white/10 hover: !text-white transition-colors;
+  @apply !text-white/80 !font-medium !rounded-lg hover:!bg-white/10 hover:!text-white transition-colors;
 }
 
 .react-datepicker__day--selected,
 .react-datepicker__day--keyboard-selected {
-  @apply !bg-cyan-400 !text-black !font-bold hover: !bg-cyan-500;
+  @apply !bg-cyan-400 !text-black !font-bold hover:!bg-cyan-500;
 }
 
 .react-datepicker__day--in-range {
