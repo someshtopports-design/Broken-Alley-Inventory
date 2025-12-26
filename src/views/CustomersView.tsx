@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useStore } from '../context/StoreContext';
 
@@ -7,7 +6,7 @@ const CustomersView: React.FC = () => {
 
     return (
         <div className="space-y-8 animate-fadeIn">
-            <h2 className="text-3xl font-black uppercase italic italic tracking-tighter">Broken Alley Fam</h2>
+            <h2 className="heading-page">Broken Alley Fam</h2>
             {customers.length === 0 ? (
                 <div className="text-center py-20 opacity-30">
                     <i className="fa-solid fa-users text-4xl mb-4"></i>
@@ -16,9 +15,9 @@ const CustomersView: React.FC = () => {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {customers.map(c => (
-                        <div key={c.id} className="glass p-8 rounded-[40px] border-white/5 group hover:border-lime-400/30 transition-all">
+                        <div key={c.id} className="card-std p-8 hover:border-lime-400/30 group">
                             <div className="flex items-center gap-6 mb-6">
-                                <div className="w-16 h-16 rounded-[25px] bg-lime-400 text-black flex items-center justify-center font-black text-2xl italic shadow-xl shadow-lime-400/20">
+                                <div className="w-16 h-16 rounded-[24px] bg-lime-400 text-black flex items-center justify-center font-black text-2xl italic shadow-xl shadow-lime-400/20 group-hover:scale-110 transition-transform duration-300">
                                     {c.name.charAt(0)}
                                 </div>
                                 <div>
